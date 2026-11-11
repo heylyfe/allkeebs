@@ -65,12 +65,6 @@ const CREDITS = [
     "https://github.com/httptoolkit/xz-decompress",
   ],
   ["esbuild", "Builds the site into one file", "MIT", "https://esbuild.github.io"],
-  [
-    "unslop",
-    "The design pass, by Damir Sokolovsky",
-    "CC BY 4.0",
-    "https://github.com/heydamir/unslop",
-  ],
 ];
 
 function externalLink(href, text) {

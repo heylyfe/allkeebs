@@ -46,7 +46,7 @@ Keyboards without a tick are still recognised and drawn with the right layout, b
 
 ## Credits and licence
 
-allkeebs is made by [heylyfe](https://github.com/heylyfe). It's built on open work by others. The keyboard drivers come from [OpenMouse](https://github.com/OpenMouse-Project/keyboard-protocol). The keyboard data comes from [VIA](https://github.com/the-via/keyboards), [Vial](https://github.com/vial-kb/vial-qmk) and [QMK](https://github.com/qmk/qmk_firmware). The design follows [unslop](https://github.com/heydamir/unslop) by Damir Sokolovsky. The full list is on the **About** page in allkeebs and in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+allkeebs is made by [heylyfe](https://github.com/heylyfe). It's built on open work by others. The keyboard drivers come from [OpenMouse](https://github.com/OpenMouse-Project/keyboard-protocol). The keyboard data comes from [VIA](https://github.com/the-via/keyboards), [Vial](https://github.com/vial-kb/vial-qmk) and [QMK](https://github.com/qmk/qmk_firmware). The full list is on the **About** page in allkeebs and in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 allkeebs is free software under the [GNU Affero General Public License v3.0 or later](LICENSE). Keyboard and brand names belong to their owners. allkeebs isn't affiliated with or endorsed by any of them.
 

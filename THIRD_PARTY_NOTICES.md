@@ -5,31 +5,30 @@ because it includes the AGPL-licensed OpenMouse keyboard drivers. The parts belo
 
 ## Code bundled into the site
 
-| Project | Used for | Licence | Source |
-| --- | --- | --- | --- |
-| @openmouse/keyboard-protocol 1.6.1 | Keyboard drivers (VIA, Keychron, Wooting, Razer, Logitech, SteelSeries, Arbiter, Wuque, Kochi) | AGPL-3.0-or-later (same text as `LICENSE`) | https://github.com/OpenMouse-Project/keyboard-protocol |
-| Lucide 0.468.0 | Icons | ISC | https://github.com/lucide-icons/lucide |
-| xz-decompress 0.2.2 | Unpacking Vial definitions. Includes XZ Embedded by Lasse Collin (public domain) | MIT | https://github.com/httptoolkit/xz-decompress |
-| DM Sans (via @fontsource-variable/dm-sans) | Interface font | SIL OFL 1.1 | https://github.com/googlefonts/dm-fonts |
-| JetBrains Mono (via @fontsource/jetbrains-mono) | Figures and codes | SIL OFL 1.1 | https://github.com/JetBrains/JetBrainsMono |
+| Project                                         | Used for                                                                                       | Licence                                    | Source                                                 |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------ |
+| @openmouse/keyboard-protocol 1.6.1              | Keyboard drivers (VIA, Keychron, Wooting, Razer, Logitech, SteelSeries, Arbiter, Wuque, Kochi) | AGPL-3.0-or-later (same text as `LICENSE`) | https://github.com/OpenMouse-Project/keyboard-protocol |
+| Lucide 0.468.0                                  | Icons                                                                                          | ISC                                        | https://github.com/lucide-icons/lucide                 |
+| xz-decompress 0.2.2                             | Unpacking Vial definitions. Includes XZ Embedded by Lasse Collin (public domain)               | MIT                                        | https://github.com/httptoolkit/xz-decompress           |
+| DM Sans (via @fontsource-variable/dm-sans)      | Interface font                                                                                 | SIL OFL 1.1                                | https://github.com/googlefonts/dm-fonts                |
+| JetBrains Mono (via @fontsource/jetbrains-mono) | Figures and codes                                                                              | SIL OFL 1.1                                | https://github.com/JetBrains/JetBrainsMono             |
 
 ## Keyboard data in `src/kbdb.json.gz`
 
 The database is derived from these projects (names, USB ids, matrix sizes, key positions, legends and lighting menus).
 `tools/build-db.mjs` regenerates it from fresh copies (`npm run data && npm run build:db`).
 
-| Project | Licence | Source |
-| --- | --- | --- |
-| the-via/keyboards | GPL-3.0 | https://github.com/the-via/keyboards |
-| vial-kb/vial-qmk | GPL-2.0-or-later | https://github.com/vial-kb/vial-qmk |
-| qmk/qmk_firmware | GPL-2.0-or-later | https://github.com/qmk/qmk_firmware |
+| Project                 | Licence            | Source                                     |
+| ----------------------- | ------------------ | ------------------------------------------ |
+| the-via/keyboards       | GPL-3.0            | https://github.com/the-via/keyboards       |
+| vial-kb/vial-qmk        | GPL-2.0-or-later   | https://github.com/vial-kb/vial-qmk        |
+| qmk/qmk_firmware        | GPL-2.0-or-later   | https://github.com/qmk/qmk_firmware        |
 | ViaMia/ViaMia-Keyboards | See its repository | https://github.com/ViaMia/ViaMia-Keyboards |
 
 ## Design
 
 - The interface follows the conventions in OpenMouse's `DESIGN.md` (https://github.com/OpenMouse-Project/openmouse, AGPL-3.0).
   The ASCII background field is ported from OpenMouse's `shared/ascii.ts`.
-- The design pass used *unslop* by Damir Sokolovsky (@heydamir), CC BY 4.0, https://github.com/heydamir/unslop.
 
 ## Build tools (not shipped in the site)
 
