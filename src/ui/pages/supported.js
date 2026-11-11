@@ -16,13 +16,23 @@ const MAX_DB_HITS = 40;
 // USB ids are shown without the 0x prefix, as in Device Manager.
 const usbId = (vid, pid) => `${hex4(vid).slice(2)}:${hex4(pid).slice(2)}`;
 
+// What the database knows about an entry, shortest first.
+function dbStatus(e) {
+  if (e.kind === "board") return `${e.via ? "VIA" : "Layout"} · ${e.keyCount} keys`;
+  if (e.kind === "id") return e.size ? `Recognised · ${e.size}%` : "Recognised";
+  return `By name · ${e.size}%`;
+}
+
 function dbRow(e) {
-  const maker = e.maker ? ` <span class="sub">· ${esc(e.maker)}</span>` : "";
+  const maker =
+    e.maker && !e.name.toLowerCase().startsWith(e.maker.toLowerCase())
+      ? ` <span class="sub">· ${esc(e.maker)}</span>`
+      : "";
   return `
     <div class="cat-row">
       <span>${esc(e.name)}${maker}</span>
-      <span class="mono">${usbId(e.vid, e.pid)}</span>
-      <span class="st">${e.via ? "VIA" : "Layout only"} · ${e.keyCount} keys</span>
+      <span class="mono">${e.vid != null ? usbId(e.vid, e.pid) : "–"}</span>
+      <span class="st">${dbStatus(e)}</span>
     </div>`;
 }
 
@@ -110,11 +120,11 @@ export function pageSupported(page) {
   const drawDb = () => {
     if (!DB) return;
     const q = (state.supQ || "").trim();
-    const total = DB.count.toLocaleString("en-GB");
-    const withVia = DB.viaCount.toLocaleString("en-GB");
+    const n = (x) => x.toLocaleString("en-GB");
     $("#dbSub").textContent =
-      `${total} keyboards with a known layout, ${withVia} of them with a VIA definition. ` +
-      "From the-via/keyboards, Vial and qmk_firmware";
+      `${n(DB.count)} keyboards. ${n(DB.boardCount)} with their exact layout ` +
+      `(${n(DB.viaCount)} of them VIA), ${n(DB.idCount)} recognised by USB id and ` +
+      `${n(DB.modelCount)} by model name`;
 
     const list = $("#dbList");
     if (!q) {

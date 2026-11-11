@@ -103,7 +103,7 @@ function fake({ vid, pid, name, rows = 6, cols = 16, vial = false, via = true })
 }
 const show = (a) =>
   console.log(
-    `${a.name} | family ${a.family} | brand ${a.brand} | def ${a.definitionSource ?? "-"} | exact ${a.exactLayout ? a.exactLayout.keys.length + " keys, coded " + a.exactLayout.keys.filter((k) => k.code).length + ", labelled " + a.exactLayout.keys.filter((k) => k.label).length : "none"} | lighting ${a.lighting ? (a.lighting.effects?.length ?? "solid") + (a.lighting.guessed ? " guessed" : "") : "none"} | keymap ${!!a.keymap} | note ${a.notes[0] || ""}`,
+    `${a.name} | family ${a.family} | brand ${a.brand} | def ${a.definitionSource ?? "-"} | exact ${a.exactLayout ? a.exactLayout.keys.length + " keys, coded " + a.exactLayout.keys.filter((k) => k.code).length + ", labelled " + a.exactLayout.keys.filter((k) => k.label).length : "none"} | lighting ${a.lighting ? (a.lighting.effects?.length ?? "solid") + (a.lighting.guessed ? " guessed" : "") : "none"} | keymap ${!!a.keymap} | size ${a.layoutHint ? a.layoutHint + "% (" + a.layoutWhy + ")" : "-"} | note ${a.notes[0] || ""}`,
   );
 (async () => {
   show(

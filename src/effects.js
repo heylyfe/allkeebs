@@ -1,6 +1,9 @@
 // Lighting simulation. Each effect returns [r, g, b] in 0..1 for one key.
 // p = { h: degrees, s: 0..1, sp: speed multiplier }, st = per-preview state, layout = the keyboard being drawn.
 export function hsv(h, s, v) {
+  // Effects can overshoot a little at their edges; keep the result a real colour.
+  s = Math.min(1, Math.max(0, s));
+  v = Math.min(1, Math.max(0, v));
   h = (((h % 360) + 360) % 360) / 60;
   const i = Math.floor(h),
     f = h - i,
@@ -469,6 +472,134 @@ export const FX = {
       return hsv(p.h + (1 - m) * 25, p.s, 0.04 + 0.96 * m);
     },
   },
+  sonar: {
+    name: "Sonar",
+    color(k, t, p) {
+      // Rings every five keys, so a small board never sits dark between pings.
+      const gap = 5,
+        phase = (((k.dist - t * p.sp * 3) % gap) + gap) % gap,
+        d = Math.min(phase, gap - phase);
+      return hsv(p.h, p.s, 0.05 + 0.95 * Math.exp(-d * d * 1.4));
+    },
+  },
+  spotlight: {
+    name: "Spotlight",
+    color(k, t, p) {
+      // A soft circle drifting over the board on a slow figure of eight.
+      const x = 0.5 + 0.42 * Math.sin(t * p.sp * 0.7),
+        y = 0.5 + 0.4 * Math.sin(t * p.sp * 1.3),
+        d = Math.hypot((k.nx - x) * 3.2, k.ny - y);
+      return hsv(p.h, p.s * (0.6 + 0.4 * d), 0.04 + 0.96 * Math.exp(-d * d * 9));
+    },
+  },
+  fireflies: {
+    name: "Fireflies",
+    color(k, t, p) {
+      const r1 = rnd(k.i, 5),
+        r2 = rnd(k.i, 6),
+        glow = Math.pow(Math.max(0, Math.sin(t * p.sp * (0.35 + r1 * 0.5) + r2 * 60)), 24);
+      return hsv(p.h + (r1 - 0.5) * 24, p.s, 0.03 + 0.97 * glow);
+    },
+  },
+  lightning: {
+    name: "Lightning",
+    color(k, t, p) {
+      // A dim sky, then every so often a double flash that strikes somewhere along the board.
+      const phase = t * p.sp * 0.35,
+        strike = Math.floor(phase),
+        f = phase - strike,
+        x = rnd(strike, 7),
+        flash = Math.exp(-f * 40) + 0.7 * Math.exp(-Math.abs(f - 0.08) * 60),
+        v = Math.min(1, flash * Math.exp(-Math.abs(k.nx - x) * 3.5)),
+        cloud = 0.12 + 0.1 * Math.sin(k.nx * 5 + k.ny * 2 + t * p.sp * 0.6);
+      return hsv(p.h, p.s * (1 - v * 0.8), cloud + (1 - cloud) * v);
+    },
+  },
+  confetti: {
+    name: "Confetti",
+    color(k, t, p) {
+      const beat = t * p.sp * 1.6 + rnd(k.i, 8) * 3,
+        n = Math.floor(beat);
+      return hsv(p.h + rnd(k.i * 13 + n, 9) * 360, p.s, 1 - (beat - n) * 0.75);
+    },
+  },
+  rows: { name: "Row rainbow", color: (k, t, p) => hsv(p.h + k.ny * 300 + t * 25 * p.sp, p.s, 1) },
+  sine: {
+    name: "Sine wave",
+    color(k, t, p) {
+      const y = 0.5 + 0.36 * Math.sin(k.nx * Math.PI * 2.4 + t * p.sp * 2),
+        d = k.ny - y;
+      return hsv(p.h + d * 60, p.s, 0.05 + 0.95 * Math.exp(-d * d * 45));
+    },
+  },
+  helix: {
+    name: "Helix",
+    color(k, t, p) {
+      const a = k.nx * Math.PI * 2.4 + t * p.sp * 2,
+        d1 = k.ny - (0.5 + 0.36 * Math.sin(a)),
+        d2 = k.ny - (0.5 - 0.36 * Math.sin(a)),
+        v1 = Math.exp(-d1 * d1 * 50),
+        v2 = Math.exp(-d2 * d2 * 50);
+      return hsv(v1 >= v2 ? p.h : p.h + 160, p.s, 0.05 + 0.95 * Math.max(v1, v2));
+    },
+  },
+  checker: {
+    name: "Checkers",
+    color(k, t, p) {
+      const odd = (Math.round(k.cx) + Math.round(k.cy)) % 2,
+        v = 0.5 + 0.5 * Math.sin(t * p.sp * 2.2);
+      return hsv(p.h, p.s, 0.08 + 0.92 * (odd ? v : 1 - v));
+    },
+  },
+  wipe: {
+    name: "Colour wipe",
+    color(k, t, p) {
+      // Each pass paints the board left to right in the next colour round the wheel.
+      const pass = t * p.sp * 0.45,
+        n = Math.floor(pass),
+        edge = pass - n,
+        painted = k.nx < edge;
+      return hsv(p.h + (painted ? n : n - 1) * 55, p.s, painted && edge - k.nx < 0.04 ? 1 : 0.85);
+    },
+  },
+  neon: {
+    name: "Neon flicker",
+    color(k, t, p) {
+      // Steady like a neon sign, with the odd stutter in one section at a time.
+      const section = Math.floor(k.cx / 4),
+        tick = Math.floor(t * p.sp * 7),
+        off = rnd(tick + section * 31, 11) < 0.05;
+      return hsv(p.h, p.s, off ? 0.18 : 0.88 + 0.08 * Math.sin(t * 50 + section));
+    },
+  },
+  rainbowbreathe: {
+    name: "Rainbow breathing",
+    color: (k, t, p) =>
+      hsv(
+        p.h + t * 30 * p.sp,
+        p.s,
+        0.06 + 0.94 * Math.pow(0.5 - 0.5 * Math.cos(t * p.sp * 1.5), 1.7),
+      ),
+  },
+  trail: {
+    name: "Typing trails",
+    color(k, t, p) {
+      // Keys you press stay lit and slowly cool down the colour wheel.
+      let best = 0,
+        age = 0;
+      for (const h of HITS) {
+        if (h.i !== k.i) continue;
+        const a = t - h.t;
+        if (a < 0 || a > 3) continue;
+        const v = Math.exp(-a * 0.9 * p.sp);
+        if (v > best) {
+          best = v;
+          age = a;
+        }
+      }
+      return hsv(p.h + age * 50, p.s, 0.04 + 0.96 * best);
+    },
+  },
 };
 
 // What each effect is closest to on keyboards with their own short effect list, and its group in the gallery.
@@ -516,6 +647,19 @@ export const FX_HW = {
   ],
   splash: ["reactive", "multisplash", "splash", "solidmultisplash"],
   cross: ["reactive", "solidreactivemulticross", "solidreactivecross", "crosssurf", "cross"],
+  sonar: ["reactive", "solidreactivenexus", "cycleoutin", "ripple"],
+  spotlight: ["breathing", "dualbeacon", "beacon", "breathing"],
+  fireflies: ["breathing", "starlight", "twinkle", "raindrops"],
+  lightning: ["breathing", "starlightdual", "starlight", "raindrops"],
+  confetti: ["cycle", "jellybeanraindrops", "pixelrain", "colorfulfountain"],
+  rows: ["wave", "cycleupdown", "rainbowwave", "gradientupdown"],
+  sine: ["wave", "huewave", "wave"],
+  helix: ["wave", "huewave", "rainbowmovingchevron"],
+  checker: ["breathing", "bandval", "breathing"],
+  wipe: ["wave", "cycleleftright", "wave"],
+  neon: ["static", "solidcolor", "static"],
+  rainbowbreathe: ["breathing", "huebreathing", "breathing"],
+  trail: ["reactive", "solidreactivesimple", "solidreactive", "reactive"],
 };
 
 export const GROUPS = [
@@ -565,6 +709,19 @@ const GROUP_OF = {
   reactive: "reactive",
   splash: "reactive",
   cross: "reactive",
+  neon: "calm",
+  rows: "rainbow",
+  confetti: "rainbow",
+  rainbowbreathe: "rainbow",
+  sine: "waves",
+  helix: "waves",
+  fireflies: "sparkle",
+  lightning: "sparkle",
+  sonar: "motion",
+  spotlight: "motion",
+  checker: "motion",
+  wipe: "motion",
+  trail: "reactive",
 };
 
 // The first twenty are the original hand-tuned set; the rest are every effect in every colour.
@@ -609,9 +766,31 @@ const COLOURS = [
   ["Rose", 330, 70],
   ["Sakura", 340, 35],
   ["White", 0, 0],
+  ["Coral", 10, 70],
+  ["Peach", 25, 45],
+  ["Gold", 46, 85],
+  ["Olive", 70, 70],
+  ["Forest", 130, 85],
+  ["Aqua", 185, 60],
+  ["Navy", 225, 95],
+  ["Lavender", 265, 35],
+  ["Magenta", 305, 90],
+  ["Ruby", 345, 95],
 ];
 
-const WARM = ["Crimson", "Ember", "Amber", "Rose", "Violet", "Cobalt", "Jade"];
+// Fire, candlelight, sunrise and lava only look right in these.
+const WARM = [
+  "Crimson",
+  "Ember",
+  "Amber",
+  "Rose",
+  "Violet",
+  "Cobalt",
+  "Jade",
+  "Coral",
+  "Gold",
+  "Ruby",
+];
 
 const NOUN = {
   solid: "glow",
@@ -641,6 +820,16 @@ const NOUN = {
   reactive: "ghost keys",
   splash: "splash",
   cross: "crosshair",
+  sonar: "sonar",
+  spotlight: "spotlight",
+  fireflies: "fireflies",
+  lightning: "storm",
+  sine: "sine wave",
+  helix: "helix",
+  checker: "checkers",
+  wipe: "wipe",
+  neon: "neon",
+  trail: "trails",
 };
 
 const RAINBOW = {
@@ -652,7 +841,38 @@ const RAINBOW = {
   cycle: "Prism",
   jelly: "Jellybean",
   pixel: "Pixel storm",
+  confetti: "Confetti",
+  rows: "Row rainbow",
+  rainbowbreathe: "Rainbow breath",
 };
+
+// Hand-tuned scenes: an effect, a hue, saturation and speed that suit a name.
+const THEMES = [
+  ["cyberpunk", "Cyberpunk", "chevron", 300, 100, 55],
+  ["vaporwave", "Vaporwave", "gradient", 290, 70, 20],
+  ["synthwave", "Synthwave", "sunrise", 320, 90, 25],
+  ["deep-sea", "Deep sea", "ocean", 210, 95, 25],
+  ["northern-lights", "Northern lights", "aurora", 140, 80, 20],
+  ["campfire", "Campfire", "fire", 8, 95, 55],
+  ["thunderstorm", "Thunderstorm", "lightning", 225, 60, 55],
+  ["summer-night", "Summer night", "fireflies", 70, 85, 35],
+  ["submarine", "Submarine", "sonar", 150, 90, 35],
+  ["stage-light", "Stage light", "spotlight", 40, 30, 35],
+  ["dna", "DNA", "helix", 190, 90, 40],
+  ["oscilloscope", "Oscilloscope", "sine", 120, 100, 50],
+  ["arcade", "Arcade", "checker", 285, 100, 45],
+  ["party", "Party", "confetti", 0, 100, 60],
+  ["paint-roller", "Paint roller", "wipe", 0, 90, 40],
+  ["diner-sign", "Diner sign", "neon", 340, 95, 40],
+  ["typewriter", "Typewriter", "trail", 35, 70, 35],
+  ["mood-ring", "Mood ring", "rainbowbreathe", 0, 85, 25],
+  ["sakura-season", "Sakura season", "starlight", 335, 40, 30],
+  ["matrix-reloaded", "Matrix reloaded", "matrix", 120, 100, 70],
+  ["volcano", "Volcano", "lava", 10, 100, 40],
+  ["glacier-drift", "Glacier drift", "plasma", 190, 45, 20],
+  ["heartbeat-red", "Racing heart", "heartbeat", 350, 95, 70],
+  ["radar-sweep", "Radar sweep", "radar", 120, 95, 40],
+];
 
 function build() {
   const out = ORIGINAL.map(([id, name, fx, h, s, speed]) => ({
@@ -666,6 +886,8 @@ function build() {
     group: GROUP_OF[fx],
     original: true,
   }));
+  for (const [id, name, fx, h, sat, speed] of THEMES)
+    out.push({ id, name, fx, h, s: sat, br: 90, speed, group: GROUP_OF[fx], original: true });
   for (const [fx, base] of Object.entries(RAINBOW))
     for (const [pre, s, speed] of [
       ["Slow", 100, 15],

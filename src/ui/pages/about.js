@@ -64,6 +64,43 @@ const CREDITS = [
     "MIT",
     "https://github.com/httptoolkit/xz-decompress",
   ],
+  [
+    "OpenRGB",
+    "USB ids and names of keyboards from dozens of brands",
+    "GPL-2.0-or-later",
+    "https://gitlab.com/CalcProgrammer1/OpenRGB",
+  ],
+  [
+    "OpenRazer",
+    "USB ids and names of Razer keyboards",
+    "GPL-2.0-or-later",
+    "https://github.com/openrazer/openrazer",
+  ],
+  ["ckb-next", "USB ids of Corsair keyboards", "GPL-2.0", "https://github.com/ckb-next/ckb-next"],
+  [
+    "The USB ID list",
+    "Names of keyboards by USB id, maintained by Stephen J. Gowdy",
+    "GPL-2.0-or-later",
+    "http://www.linux-usb.org/usb.ids",
+  ],
+  [
+    "Linux",
+    "Keyboard USB ids the kernel handles specially",
+    "GPL-2.0",
+    "https://github.com/torvalds/linux",
+  ],
+  [
+    "sinowealth-kb-tool",
+    "USB ids of budget boards on Sinowealth chips",
+    "MIT",
+    "https://github.com/carlossless/sinowealth-kb-tool",
+  ],
+  [
+    "Makers' QMK firmware",
+    "Layouts from Keychron, NuPhy, Epomaker, MonsGeek, Cipulot and ZSA",
+    "GPL-2.0-or-later",
+    "https://github.com/Keychron/qmk_firmware",
+  ],
   ["esbuild", "Builds the site into one file", "MIT", "https://esbuild.github.io"],
 ];
 

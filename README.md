@@ -4,11 +4,11 @@
 
 **[Open allkeebs → heylyfe.github.io/allkeebs](https://heylyfe.github.io/allkeebs/)**
 
-allkeebs works with keyboards from almost any brand. Plug yours in, click **Connect keyboard**, and it recognises the model on its own. It checks a built-in list of more than 3,000 keyboards, so you don't need to find or import any files.
+allkeebs works with keyboards from almost any brand. Plug yours in, click **Connect keyboard**, and it recognises the model on its own. It checks a built-in list of more than 4,500 keyboards, so you don't need to find or import any files.
 
 ## What you can do
 
-- **Lighting.** Choose from 471 lighting profiles and preview each one live before sending it to the keyboard. Tune colour, brightness and speed. Boards that support VIA also show their own extra lighting settings.
+- **Lighting.** Choose from over 1,000 lighting profiles across 49 effects and preview each one live before sending it to the keyboard. Tune colour, brightness and speed. Boards that support VIA also show their own extra lighting settings.
 - **Keymap.** Change what any key does, on any layer. For example, move Caps Lock, add media keys or set up an Fn layer.
 - **Macros.** Record a shortcut or a phrase by typing it, or build one step by step. Then put it on a key.
 - **Key test.** Press every key to check it works. allkeebs spots keys that double-type ("chatter"). This works on any keyboard, even ones allkeebs can't configure.
@@ -61,6 +61,6 @@ npm run build   # writes the whole site to docs/index.html
 npm test        # checks the drivers against simulated keyboards
 ```
 
-`npm run data` followed by `npm run build:db` rebuilds the keyboard list from the latest VIA, Vial and QMK data.
+`npm run data` followed by `npm run build:db` rebuilds the keyboard list from the latest VIA, Vial and QMK data, makers' own QMK firmware, OpenRGB, OpenRazer, ckb-next, the Linux kernel and the USB id list. `tools/models.txt` holds the hand-made list of model names and sizes.
 
 </details>

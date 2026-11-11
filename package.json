@@ -5,7 +5,7 @@
   "scripts": {
     "build": "node build.mjs",
     "data": "sh tools/fetch-data.sh",
-    "build:db": "node tools/build-db.mjs data/via data/qmk src/kbdb.json.gz data/vial data/viamia/keyboards",
+    "build:db": "node tools/collect-ids.mjs data data/ids.json && node tools/build-db.mjs src/kbdb.json.gz --qmk data/qmk --qmk data/keychron --qmk data/nuphy --qmk data/sonix --qmk data/epomaker --qmk data/monsgeek --qmk data/cipulot --qmk data/zsa --via data/via/v3 --via data/via/src --via data/viamia/keyboards --via data/keychron/keyboards --via data/nuphy/keyboards --via data/epomaker/keyboards --via data/monsgeek/keyboards --via data/cipulot/keyboards --vial data/vial/keyboards --ids data/ids.json --models tools/models.txt",
     "test": "node test/run.mjs"
   },
   "keywords": [

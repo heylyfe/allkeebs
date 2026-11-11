@@ -1,0 +1,353 @@
+# Keyboards people review on YouTube and buy, with their size class, for boards that have no VIA
+# or QMK file. allkeebs matches the name a keyboard reports against this list to draw the right
+# layout. One per line: maker | model | size (40, 60, 65, 75, 80, 96 or 100).
+# Sizes follow the board's layout, not its marketing: 68 keys is 65, 84 is 75, 87 is 80, 98 is 96.
+
+Wobkey | Rainy 75 | 75
+Wobkey | Rainy 75 Pro | 75
+Wobkey | Rainy 75 Lite | 75
+Aula | F75 | 75
+Aula | F75 Pro | 75
+Aula | F75 Max | 75
+Aula | F65 | 65
+Aula | F87 | 80
+Aula | F87 Pro | 80
+Aula | F99 | 96
+Aula | F99 Pro | 96
+Aula | F108 | 100
+Aula | F108 Pro | 100
+Aula | WIN68 HE | 65
+Ajazz | AK820 | 75
+Ajazz | AK820 Pro | 75
+Ajazz | AK820 Max | 75
+Ajazz | AK680 | 65
+Ajazz | AK870 | 80
+Ajazz | AK992 | 96
+Ajazz | AK35i | 100
+Ajazz | AK33 | 75
+Ajazz | AKS068 Alice | 65
+Womier | SK65 | 65
+Womier | SK75 | 75
+Womier | SK80 | 75
+Womier | S-K80 | 75
+Womier | WK61 | 60
+Womier | M87 | 80
+Womier | M87 Pro | 80
+Womier | K87 | 80
+Weikav | Lucky65 | 65
+Weikav | Lucky65 V2 | 65
+Weikav | Lucky65 V3 | 65
+Weikav | Sugar65 | 65
+Leobog | Hi75 | 75
+Leobog | Hi75C | 75
+Leobog | Hi8 | 80
+Leobog | K81 | 75
+Yunzii | AL65 | 65
+Yunzii | AL68 | 65
+Yunzii | AL75 | 75
+Yunzii | AL80 | 80
+Yunzii | AL98 | 96
+Yunzii | B75 | 75
+Yunzii | B75 Pro | 75
+Yunzii | B75 Pro Max | 75
+Yunzii | YZ75 | 75
+Yunzii | KC84 | 75
+Yunzii | C68 | 65
+Yunzii | RT68 | 65
+Yunzii | X98 | 96
+Madlions | MAD60 HE | 60
+Madlions | MAD68 HE | 65
+Madlions | MAD68 R | 65
+Mikiby | Mad Nano 68 | 65
+Attack Shark | X68 HE | 65
+Attack Shark | X85 | 75
+Attack Shark | K86 | 75
+Gamakay | NS68 | 65
+Gamakay | NS75 | 75
+Gamakay | TK75 HE | 75
+Gamakay | TK75 HE V2 | 75
+Gamakay | LK67 | 65
+Epomaker | TH80 | 75
+Epomaker | TH80 Pro | 75
+Epomaker | TH66 | 65
+Epomaker | TH96 | 96
+Epomaker | P65 | 65
+Epomaker | P75 | 75
+Epomaker | P87 | 80
+Epomaker | EK68 | 65
+Epomaker | HE68 | 65
+Epomaker | HE68 Lite | 65
+Epomaker | H80 Magnetic | 80
+Epomaker | Hack70 | 65
+Epomaker | Galaxy68 | 65
+Epomaker | Split65 | 65
+Epomaker | Tide65 | 65
+Epomaker | Tide75 | 75
+Epomaker | RT98 | 96
+Feker | Galaxy80 | 80
+Feker | IK75 | 75
+Akko | 3068B | 65
+Akko | 3084B | 75
+Akko | 3098B | 96
+Akko | 5075B | 75
+Akko | 5075B Plus | 75
+Akko | 5075S | 75
+Akko | 5087B | 80
+Akko | 5098B | 96
+Akko | 5108B | 100
+Akko | MOD007 | 65
+Akko | MOD007B | 65
+Akko | MU01 | 65
+MonsGeek | M1 | 75
+MonsGeek | M1W | 75
+MonsGeek | M1 V5 | 75
+MonsGeek | M2 | 96
+MonsGeek | M3 | 80
+MonsGeek | M5 | 100
+MonsGeek | M7 | 65
+MonsGeek | FUN60 | 60
+MonsGeek | FUN60 Pro | 60
+Royal Kludge | RK61 | 60
+Royal Kludge | RK68 | 65
+Royal Kludge | RK84 | 75
+Royal Kludge | RK87 | 80
+Royal Kludge | RK96 | 96
+Royal Kludge | RK100 | 96
+Royal Kludge | R65 | 65
+Royal Kludge | R75 | 75
+Royal Kludge | M75 | 75
+Royal Kludge | L75 | 75
+Royal Kludge | S98 | 96
+Redragon | K530 | 60
+Redragon | K552 Kumara | 80
+Redragon | K556 Devarajas | 100
+Redragon | K582 Surara | 100
+Redragon | K617 Fizz | 60
+Redragon | K630 Dragonborn | 65
+Redragon | K631 Castor | 65
+Redragon | K641 Shaco | 65
+Redragon | K671 | 100
+Redragon | K673 | 75
+Redragon | K745 | 100
+Redragon | K768 | 75
+NuPhy | Air60 | 60
+NuPhy | Air60 HE | 60
+NuPhy | Air75 | 75
+NuPhy | Air75 V2 | 75
+NuPhy | Air75 HE | 75
+NuPhy | Air96 | 96
+NuPhy | Halo65 | 65
+NuPhy | Halo75 | 75
+NuPhy | Halo96 | 96
+NuPhy | Gem80 | 80
+NuPhy | Field75 | 75
+NuPhy | Field75 HE | 75
+NuPhy | Kick75 | 75
+Lofree | Flow | 75
+Lofree | Flow Lite | 75
+Lofree | Block 98 | 96
+Cidoo | V65 | 65
+Cidoo | V75 | 75
+Cidoo | ABM066 | 65
+Cidoo | ABM084 | 75
+Skyloong | GK61 | 60
+Skyloong | GK68 | 65
+Skyloong | GK75 | 75
+Zifriend | ZA68 | 65
+Zifriend | ZT82 | 75
+iQunix | Magi65 | 65
+iQunix | Magi96 | 96
+iQunix | ZX75 | 75
+iQunix | OG80 | 80
+iQunix | L80 | 80
+iQunix | F97 | 96
+Varmilo | VA69M | 65
+Varmilo | VA87M | 80
+Varmilo | VA88M | 80
+Varmilo | VA109M | 100
+Varmilo | Minilo | 75
+Varmilo | VXT81 | 75
+Leopold | FC660M | 65
+Leopold | FC750R | 80
+Leopold | FC900R | 100
+Leopold | FC980M | 96
+Ducky | One 3 | 100
+Ducky | One 3 TKL | 80
+Ducky | One 3 SF | 65
+Ducky | One 3 Mini | 60
+Ducky | One 2 Mini | 60
+Ducky | One 2 SF | 65
+Ducky | One X | 100
+Ducky | Tinker 65 | 65
+Ducky | Tinker 75 | 75
+Ducky | Mecha Mini | 60
+Ducky | Shine 7 | 100
+Glorious | GMMK Pro | 75
+Glorious | GMMK TKL | 80
+Glorious | GMMK Compact | 60
+Wooting | One | 80
+Wooting | Two | 100
+Wooting | Two HE | 100
+Wooting | 60HE | 60
+Wooting | 60HE+ | 60
+Wooting | 80HE | 75
+DrunkDeer | A75 | 75
+DrunkDeer | A75 Pro | 75
+DrunkDeer | G65 | 65
+DrunkDeer | G60 | 60
+Mchose | Ace 68 | 65
+Mchose | Jet 75 | 75
+Mchose | X75 | 75
+Mchose | G75 | 75
+Mchose | GX87 | 80
+Mchose | G98 | 96
+VGN | N75 | 75
+VGN | V87 | 80
+VGN | V98 Pro | 96
+VGN | S99 | 96
+Irok | MG75 | 75
+Irok | FE87 | 80
+Tecware | Spectre 75 | 75
+Tecware | Phantom 87 | 80
+Tecware | Phantom 104 | 100
+Fantech | MaxFit61 | 60
+Fantech | MaxFit67 | 65
+Fantech | Atom 81 | 75
+Fantech | Atom 96 | 96
+Lumi | Magger68 | 65
+KiiBOOM | Jade 75 | 75
+KiiBOOM | Phantom 68 | 65
+KiiBOOM | Phantom 81 | 75
+KiiBOOM | Phantom 98 | 96
+KiiBOOM | Loop65 | 65
+GravaStar | Mercury K1 | 75
+GravaStar | Mercury K1 Lite | 75
+AOC | GK330 | 75
+AOC | GK500 | 100
+Qwertykeys | QK60 | 60
+Qwertykeys | QK65 | 65
+Qwertykeys | QK75 | 75
+Qwertykeys | QK80 | 80
+Qwertykeys | QK80 MK2 | 80
+Qwertykeys | QK100 | 96
+Qwertykeys | Neo60 | 60
+Qwertykeys | Neo65 | 65
+Qwertykeys | Neo65 Core Plus | 65
+Qwertykeys | Neo65 Sonic HE+ | 65
+Qwertykeys | Neo70 | 65
+Qwertykeys | Neo75 | 75
+Qwertykeys | Neo80 | 80
+Qwertykeys | Neo Ergo | 65
+Evoworks | Evo75 | 75
+Evoworks | Evo80 | 80
+Meletrix | Zoom65 | 65
+Meletrix | Zoom75 | 75
+Meletrix | Zoom98 | 96
+Meletrix | ZoomTKL | 80
+Mode | Sonnet | 75
+Mode | Envoy | 65
+Mode | Eighty | 80
+Mode | SixtyFive | 65
+Rama | M60 | 60
+Rama | M65 | 65
+Rama | U80 | 80
+Rama | Kara | 60
+Rama | Koyu | 65
+Angry Miao | AM RGB 65 | 65
+Angry Miao | AM 65 Less | 65
+HHKB | Professional Hybrid | 60
+HHKB | Professional Classic | 60
+HHKB | Studio | 60
+Realforce | R3 | 100
+Realforce | R3 TKL | 80
+Logitech | MX Mechanical | 100
+Logitech | MX Mechanical Mini | 75
+Logitech | MX Keys | 100
+Logitech | MX Keys S | 100
+Logitech | MX Keys Mini | 75
+Logitech | POP Keys | 75
+Logitech | K380 | 75
+Logitech | K855 | 80
+Logitech | G213 | 100
+Logitech | G413 | 100
+Logitech | G513 | 100
+Logitech | G515 | 80
+Logitech | G715 | 80
+Logitech | G713 | 80
+Logitech | G915 | 100
+Logitech | G915 TKL | 80
+Logitech | G Pro X 60 | 60
+Razer | BlackWidow V4 75% | 75
+Razer | BlackWidow V4 Pro | 100
+Razer | Huntsman Mini | 60
+Razer | Huntsman V3 Pro | 100
+Razer | Huntsman V3 Pro TKL | 80
+Razer | Huntsman V3 Pro Mini | 60
+Razer | DeathStalker V2 | 100
+Razer | Ornata V3 TKL | 80
+SteelSeries | Apex Pro | 100
+SteelSeries | Apex Pro TKL | 80
+SteelSeries | Apex Pro Mini | 60
+SteelSeries | Apex 9 Mini | 60
+SteelSeries | Apex 3 TKL | 80
+SteelSeries | Apex 7 | 100
+Corsair | K65 Plus | 75
+Corsair | K65 Pro Mini | 65
+Corsair | K70 Core | 100
+Corsair | K70 Max | 100
+Corsair | K100 | 100
+Corsair | K55 Core | 100
+HyperX | Alloy Origins 60 | 60
+HyperX | Alloy Origins 65 | 65
+HyperX | Alloy Origins Core | 80
+HyperX | Alloy Rise 75 | 75
+HyperX | Alloy Elite 2 | 100
+ASUS | ROG Falchion | 65
+ASUS | ROG Falchion Ace | 65
+ASUS | ROG Falchion Ace HFX | 65
+ASUS | ROG Azoth | 75
+ASUS | ROG Azoth Extreme | 75
+ASUS | ROG Strix Scope II 96 | 96
+ASUS | ROG Strix Scope RX TKL | 80
+ASUS | ROG Strix Flare II | 100
+Cooler Master | SK620 | 60
+Cooler Master | SK622 | 60
+Cooler Master | CK721 | 65
+Cooler Master | MK770 | 96
+Cooler Master | CK550 | 100
+Cherry | MX Board 3.0S | 100
+Cherry | MX 8.2 TKL | 80
+Cherry | KC 6000 | 100
+Cherry | G80-3000 | 100
+Das Keyboard | 4 Professional | 100
+Das Keyboard | 6 Professional | 100
+KBDfans | Tofu60 | 60
+KBDfans | Tofu65 | 65
+KBDfans | KBD67 Lite | 65
+KBDfans | KBD75 | 75
+KBDfans | D60 | 60
+Mountain | Everest 60 | 60
+Mountain | Everest Max | 100
+Vortex | Race 3 | 75
+Vortex | Pok3r | 60
+Filco | Majestouch 2 TKL | 80
+Filco | Majestouch Minila | 60
+Drop | CTRL | 80
+Drop | ALT | 65
+Drop | SHIFT | 96
+Drop | Sense75 | 75
+Drop | ENTR | 80
+8BitDo | Retro Mechanical Keyboard | 80
+Durgod | Taurus K310 | 100
+Durgod | Taurus K320 | 80
+Durgod | Hades 68 | 65
+FL Esports | CMK75 | 75
+Dareu | EK75 | 75
+Dareu | A87 | 80
+Dareu | A98 | 96
+Keydous | NJ68 | 65
+Keydous | NJ80 | 75
+Keydous | NJ98 | 96
+MelGeek | Mojo68 | 65
+MelGeek | Mojo84 | 75
+MelGeek | Made68 | 65

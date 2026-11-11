@@ -349,7 +349,8 @@ async function findDefinition(vid, pid, vialText) {
   }
   try {
     const e = (await keyboardDb()).lookup(vid, pid);
-    if (e) return { def: via.parseViaDefinition(servedDefinition(e)), source: "db", entry: e };
+    if (e?.hasLayout)
+      return { def: via.parseViaDefinition(servedDefinition(e)), source: "db", entry: e };
   } catch {
     /* fall through */
   }
@@ -887,15 +888,15 @@ async function identifiedAdapter(device, why) {
     ["Vendor and product", `${hex4(kb.vid)} : ${hex4(kb.pid)}`],
     ["Name reported", device.productName || "–"],
   ];
-  if (e) {
-    kb.identity.push(["Database entry", `${e.name}${e.maker ? ", " + e.maker : ""}`]);
+  if (e) kb.identity.push(["Database entry", `${e.name}${e.maker ? ", " + e.maker : ""}`]);
+  if (e?.hasLayout) {
     kb.exactLayout = exactLayout("db", e.name, e.keys);
     for (const k of kb.exactLayout.keys) k.label = k.label || "";
     assignCodes(kb.exactLayout);
   }
   kb.facts = [
-    ["Keys", e ? e.keyCount : "–"],
-    ["Known from", e ? (e.via ? "VIA" : "QMK") : "Its name"],
+    ["Keys", e?.hasLayout ? e.keyCount : "–"],
+    ["Known from", !e ? "Its name" : e.via ? "VIA" : e.hasLayout ? "QMK" : "Keyboard database"],
   ];
   kb.notes.push(
     why ||
@@ -908,6 +909,32 @@ async function identifiedAdapter(device, why) {
 
 /** Opens one HID device with the best driver and returns its adapter. */
 export async function openKeyboard(device, log = () => {}) {
+  const kb = await openWithDriver(device, log);
+  await addSizeHint(kb, device).catch(() => {});
+  return kb;
+}
+
+/**
+ * Without an exact layout, the database can still say how big the keyboard is: from its USB id,
+ * or from a known model name inside the name it reports.
+ */
+async function addSizeHint(kb, device) {
+  if (kb.exactLayout || kb.layoutHint) return;
+  const db = await keyboardDb();
+  const byId = db.lookup(device.vendorId, device.productId);
+  const hit = byId?.size ? byId : db.matchName(device.productName) || db.matchName(kb.name);
+  if (!hit?.size) return;
+  kb.layoutHint = hit.size;
+  const name =
+    hit.maker && !hit.name.toLowerCase().startsWith(hit.maker.toLowerCase())
+      ? `${hit.maker} ${hit.name}`
+      : hit.name;
+  kb.layoutWhy = `the keyboard database entry for ${name}`;
+  if (hit.kind === "model" && !kb.identity.some(([label]) => label === "Database entry"))
+    kb.identity.push(["Database entry", name]);
+}
+
+async function openWithDriver(device, log) {
   const client = createSupportedClient(device);
   if (!client) {
     log(`No driver for ${device.productName || "device"}, identifying it`);

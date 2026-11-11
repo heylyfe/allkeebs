@@ -1,8 +1,16 @@
-// The built-in keyboard database: every board in the-via/keyboards, Vial and qmk_firmware that has a USB id,
-// gzipped into the page. Unpacked once, on first use, with the browser's own gzip decoder.
+// The built-in keyboard database, gzipped into the page and unpacked once on first use with the
+// browser's own gzip decoder. It holds three kinds of entry:
+//   boards  USB id and exact key layout (VIA, Vial and QMK, including makers' own firmware)
+//   ids     USB id and name only (OpenRGB, OpenRazer, ckb-next, the Linux kernel, the USB id list...)
+//   models  a model name and its size, for keyboards that never published either
 import PACKED from "./kbdb.json.gz";
 
 let ready = null;
+
+const norm = (s) =>
+  String(s || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
 
 export function keyboardDb() {
   if (!ready)
@@ -11,16 +19,26 @@ export function keyboardDb() {
       const text = await new Response(
         new Blob([bin]).stream().pipeThrough(new DecompressionStream("gzip")),
       ).text();
-      const raw = JSON.parse(text),
-        index = new Map();
-      raw.boards.forEach((b, i) => index.set(b[0], i));
-      const entry = (b) => {
-        const [id, name, maker, li, flags, rows, cols, ex] = b;
+      const raw = JSON.parse(text);
+      const ids = raw.ids || [],
+        models = raw.models || [];
+      const sizes = raw.sizes || ["40", "60", "65", "75", "80", "96", "100"];
+      const maker = (i) => (i >= 0 ? raw.makers[i] : "");
+
+      const boardIndex = new Map(),
+        idIndex = new Map();
+      raw.boards.forEach((b, i) => boardIndex.set(b[0], i));
+      ids.forEach((b, i) => idIndex.set(b[0], i));
+
+      const board = (b) => {
+        const [id, name, mk, li, flags, rows, cols, ex] = b;
         return {
+          kind: "board",
+          hasLayout: true,
           vid: id >>> 16,
           pid: id & 0xffff,
           name,
-          maker: maker >= 0 ? raw.makers[maker] : "",
+          maker: maker(mk),
           via: !!(flags & 1),
           qmk: !!(flags & 2),
           rgbMatrix: !!(flags & 4),
@@ -44,32 +62,85 @@ export function keyboardDb() {
           },
         };
       };
+      const identified = ([id, name, mk, size]) => ({
+        kind: "id",
+        hasLayout: false,
+        vid: id >>> 16,
+        pid: id & 0xffff,
+        name,
+        maker: maker(mk),
+        size: size >= 0 ? sizes[size] : null,
+        via: false,
+        keyCount: 0,
+        keys: [],
+      });
+      const model = ([name, mk, size]) => ({
+        kind: "model",
+        hasLayout: false,
+        vid: null,
+        pid: null,
+        name,
+        maker: maker(mk),
+        size: sizes[size],
+        via: false,
+        keyCount: 0,
+        keys: [],
+      });
+
+      // Longest names first, so "Rainy 75 Pro" wins over "Rainy 75".
+      const modelKeys = models
+        .map((m) => ({ m, key: norm(m[0]), full: norm(maker(m[1]) + m[0]) }))
+        .filter((x) => x.key.length >= 3)
+        .sort((a, b) => b.key.length - a.key.length);
+
+      const matches = (e, s) =>
+        e.name.toLowerCase().includes(s) || e.maker.toLowerCase().includes(s);
+
       return {
-        count: raw.boards.length,
+        count: raw.boards.length + ids.length + models.length,
+        boardCount: raw.boards.length,
+        idCount: ids.length,
+        modelCount: models.length,
+        viaCount: raw.boards.filter((b) => b[4] & 1).length,
         built: raw.built,
+
+        /** The entry for a USB id: a board with a layout first, then an identified keyboard. */
         lookup(vid, pid) {
-          const i = index.get(vid * 65536 + pid);
-          return i == null ? null : entry(raw.boards[i]);
+          const id = vid * 65536 + pid;
+          if (boardIndex.has(id)) return board(raw.boards[boardIndex.get(id)]);
+          if (idIndex.has(id)) return identified(ids[idIndex.get(id)]);
+          return null;
         },
+
+        /** A known model whose name appears in what the keyboard calls itself. */
+        matchName(reported) {
+          const n = norm(reported);
+          if (n.length < 3) return null;
+          const hit = modelKeys.find((x) => n.includes(x.full) || n.includes(x.key));
+          return hit ? model(hit.m) : null;
+        },
+
         search(q, limit = 60) {
           const s = q.trim().toLowerCase(),
             out = [];
-          for (const b of raw.boards) {
-            const maker = b[2] >= 0 ? raw.makers[b[2]] : "";
-            if (!s || b[1].toLowerCase().includes(s) || maker.toLowerCase().includes(s)) {
-              out.push(entry(b));
-              if (out.length >= limit) break;
+          const from = (list, make) => {
+            for (const b of list) {
+              if (out.length >= limit) return;
+              const e = make(b);
+              if (!s || matches(e, s)) out.push(e);
             }
-          }
+          };
+          from(raw.boards, board);
+          from(ids, identified);
+          from(models, model);
           return out;
         },
-        viaCount: raw.boards.filter((b) => b[4] & 1).length,
       };
     })();
   return ready;
 }
 
-/** A VIA definition object in the served shape, built from a database entry. */
+/** A VIA definition object in the served shape, built from a database board. */
 export function servedDefinition(e) {
   const ex = e.extra || {};
   const def = {

@@ -1,9 +1,28 @@
-// Builds the compact keyboard database from the-via/keyboards and qmk_firmware.
-// usage: node tools/build-db.mjs <via repo> <qmk repo> <out.json.gz>
+// Builds the compact keyboard database the site ships with.
+//
+// Three kinds of entry:
+//   boards  USB id + exact key layout, from VIA, Vial and QMK (upstream and makers' own forks)
+//   ids     USB id + name, from the USB id list, Linux, OpenRGB, OpenRazer, ckb-next and others
+//   models  name + size only, for boards that never published a USB id or a layout
+//
+// usage: node tools/build-db.mjs <out.json.gz> [--qmk dir]... [--via dir]... [--vial dir]...
+//        [--ids ids.json] [--models models.txt]
 import { readFileSync, readdirSync, statSync, existsSync, writeFileSync } from "node:fs";
 import { join, dirname, relative } from "node:path";
 import { gzipSync } from "node:zlib";
-const [viaDir, qmkDir, out, vialDir, extraDir] = process.argv.slice(2);
+import { guessFromName } from "../src/layouts.js";
+
+const args = process.argv.slice(2);
+const out = args.shift();
+const opt = { qmk: [], via: [], vial: [], ids: null, models: null };
+while (args.length) {
+  const flag = args.shift().replace(/^--/, ""),
+    value = args.shift();
+  if (Array.isArray(opt[flag])) opt[flag].push(value);
+  else opt[flag] = value;
+}
+const SIZES = ["40", "60", "65", "75", "80", "96", "100"];
+
 const walk = (d, acc = []) => {
   for (const n of readdirSync(d)) {
     const p = join(d, n);
@@ -70,31 +89,7 @@ const deep = (a, b) => {
   for (const k of Object.keys(b)) o[k] = deep(o[k], b[k]);
   return o;
 };
-const qmkRoot = join(qmkDir, "keyboards");
-const files = walk(qmkRoot).filter((p) => /(^|\/)(info|keyboard)\.json$/.test(p));
-const byDir = new Map();
-for (const f of files) {
-  const d = dirname(f);
-  (byDir.get(d) || byDir.set(d, []).get(d)).push(f);
-}
-function merged(dir) {
-  const chain = [];
-  let d = dir;
-  while (d.startsWith(qmkRoot) && d !== qmkRoot) {
-    chain.unshift(d);
-    d = dirname(d);
-  }
-  let o = {};
-  for (const c of chain)
-    for (const f of (byDir.get(c) || []).sort()) {
-      try {
-        o = deep(o, JSON.parse(readFileSync(f, "utf8")));
-      } catch {
-        /* bad json */
-      }
-    }
-  return o;
-}
+// Prefer the plain ANSI layout a board ships with over ISO, split or "all keys" variants.
 function pickLayout(layouts) {
   const names = Object.keys(layouts || {}).filter(
     (n) => Array.isArray(layouts[n]?.layout) && layouts[n].layout.length,
@@ -115,48 +110,80 @@ function pickLayout(layouts) {
   names.sort((a, b) => score(a) - score(b) || layouts[b].layout.length - layouts[a].layout.length);
   return layouts[names[0]].layout;
 }
-const qmk = new Map(); // vidpid -> [{name, maker, keys, leaf}]
-for (const dir of byDir.keys()) {
-  const leaf = (byDir.get(dir) || []).some((f) => f.endsWith("keyboard.json"));
-  const m = merged(dir);
-  const usb = m.usb || {};
-  if (!usb.vid || !usb.pid) continue;
-  const lay = pickLayout(m.layouts);
-  if (!lay) continue;
-  const keys = lay
-    .filter((k) => Array.isArray(k.matrix))
-    .map((k) => ({
-      r: k.matrix[0],
-      c: k.matrix[1],
-      x: k.x || 0,
-      y: k.y || 0,
-      w: k.w || 1,
-      h: k.h || 1,
-      l: typeof k.label === "string" ? k.label : undefined,
-    }));
-  if (!keys.length) continue;
-  const id = hx(usb.vid) * 65536 + hx(usb.pid);
-  (qmk.get(id) || qmk.set(id, []).get(id)).push({
-    name: m.keyboard_name || relative(qmkRoot, dir),
-    maker: m.manufacturer || "",
-    keys,
-    leaf,
-    path: relative(qmkRoot, dir),
-    rgb: !!m.features?.rgb_matrix,
-    ug: !!m.features?.rgblight,
-  });
+
+function scanQmk(root, into) {
+  const qmkRoot = join(root, "keyboards");
+  if (!existsSync(qmkRoot)) return;
+  const files = walk(qmkRoot).filter((p) => /(^|\/)(info|keyboard)\.json$/.test(p));
+  const byDir = new Map();
+  for (const f of files) {
+    const d = dirname(f);
+    (byDir.get(d) || byDir.set(d, []).get(d)).push(f);
+  }
+  // A keyboard's settings are spread over every info.json from its folder up to keyboards/.
+  function merged(dir) {
+    const chain = [];
+    let d = dir;
+    while (d.startsWith(qmkRoot) && d !== qmkRoot) {
+      chain.unshift(d);
+      d = dirname(d);
+    }
+    let o = {};
+    for (const c of chain)
+      for (const f of (byDir.get(c) || []).sort()) {
+        try {
+          o = deep(o, JSON.parse(readFileSync(f, "utf8")));
+        } catch {
+          /* bad json */
+        }
+      }
+    return o;
+  }
+  const seen = new Set(into.keys());
+  for (const dir of byDir.keys()) {
+    const leaf = (byDir.get(dir) || []).some((f) => f.endsWith("keyboard.json"));
+    const m = merged(dir);
+    const usb = m.usb || {};
+    if (!usb.vid || !usb.pid) continue;
+    const lay = pickLayout(m.layouts);
+    if (!lay) continue;
+    const keys = lay
+      .filter((k) => Array.isArray(k.matrix))
+      .map((k) => ({
+        r: k.matrix[0],
+        c: k.matrix[1],
+        x: k.x || 0,
+        y: k.y || 0,
+        w: k.w || 1,
+        h: k.h || 1,
+        l: typeof k.label === "string" ? k.label : undefined,
+      }));
+    if (!keys.length) continue;
+    const id = hx(usb.vid) * 65536 + hx(usb.pid);
+    if (seen.has(id)) continue; // an earlier tree (upstream QMK) already has this id
+    (into.get(id) || into.set(id, []).get(id)).push({
+      name: m.keyboard_name || relative(qmkRoot, dir),
+      maker: m.manufacturer || "",
+      keys,
+      leaf,
+      path: relative(qmkRoot, dir),
+      rgb: !!m.features?.rgb_matrix,
+      ug: !!m.features?.rgblight,
+    });
+  }
 }
+const qmk = new Map(); // vidpid -> [{name, maker, keys, leaf}]
+for (const root of opt.qmk) scanQmk(root, qmk);
 /* ---- VIA ---- */
 const via = new Map();
+// VIA folders take any .json with a USB id and a keymap; Vial trees only their vial.json files.
 const viaSources = [
-  join(viaDir, "v3"),
-  join(viaDir, "src"),
-  vialDir && join(vialDir, "keyboards"),
-  extraDir,
-].filter((d) => d && existsSync(d));
-for (const base of viaSources) {
-  for (const f of walk(base).filter((p) =>
-    base.includes("keyboards") ? p.endsWith("vial.json") : p.endsWith(".json"),
+  ...opt.via.map((dir) => ({ dir, vialOnly: false })),
+  ...opt.vial.map((dir) => ({ dir, vialOnly: true })),
+].filter((s) => existsSync(s.dir));
+for (const { dir, vialOnly } of viaSources) {
+  for (const f of walk(dir).filter((p) =>
+    vialOnly ? p.endsWith("vial.json") : p.endsWith(".json"),
   )) {
     let j;
     try {
@@ -213,8 +240,8 @@ const norm = (s) =>
 const boards = [];
 let skipped = 0,
   labelled = 0;
-const ids = new Set([...via.keys(), ...qmk.keys()]);
-for (const id of [...ids].sort((a, b) => a - b)) {
+const allIds = new Set([...via.keys(), ...qmk.keys()]);
+for (const id of [...allIds].sort((a, b) => a - b)) {
   const v = via.get(id),
     qs = qmk.get(id) || [];
   const names = new Set(qs.map((q) => norm(q.name)));
@@ -280,13 +307,63 @@ for (const id of [...ids].sort((a, b) => a - b)) {
   if (ex >= 0) row.push(ex);
   boards.push(row);
 }
-const db = { v: 1, built: new Date().toISOString().slice(0, 10), makers, layouts, extras, boards };
+/* ---- identified keyboards: USB id and name, no layout ---- */
+// "Logitech, Inc." and "Razer USA, Ltd" read better as "Logitech" and "Razer".
+const cleanMaker = (m) =>
+  String(m || "")
+    .replace(/\s*[,(].*$/, "")
+    .replace(
+      /\b(Inc|Corp|Corporation|Co|Ltd|Limited|LLC|GmbH|AG|Technology|Technologies|Electronics|International|Computer)\b\.?/gi,
+      "",
+    )
+    .replace(/\s+/g, " ")
+    .trim();
+const sizeOf = (name) => {
+  const g = guessFromName(name);
+  return g ? SIZES.indexOf(g.id) : -1;
+};
+const ids = [];
+const boardIds = new Set(boards.map((b) => b[0]));
+if (opt.ids && existsSync(opt.ids)) {
+  for (const e of JSON.parse(readFileSync(opt.ids, "utf8"))) {
+    const id = e.vid * 65536 + e.pid;
+    if (boardIds.has(id)) continue; // already known with a full layout
+    const maker = cleanMaker(e.maker);
+    ids.push([id, e.name, maker ? intern(makers, makerIdx, maker) : -1, sizeOf(e.name)]);
+  }
+  ids.sort((a, b) => a[0] - b[0]);
+}
+
+/* ---- models: name and size only ---- */
+const models = [];
+if (opt.models && existsSync(opt.models)) {
+  for (const line of readFileSync(opt.models, "utf8").split("\n")) {
+    if (!line.trim() || line.startsWith("#")) continue;
+    const [maker, name, size] = line.split("|").map((x) => x.trim());
+    const si = SIZES.indexOf(size);
+    if (!name || si < 0) throw new Error(`bad model line: ${line}`);
+    models.push([name, intern(makers, makerIdx, maker), si]);
+  }
+}
+
+const db = {
+  v: 2,
+  built: new Date().toISOString().slice(0, 10),
+  sizes: SIZES,
+  makers,
+  layouts,
+  extras,
+  boards,
+  ids,
+  models,
+};
 const json = JSON.stringify(db),
   gz = gzipSync(json, { level: 9 });
 writeFileSync(out, gz);
 console.log(
   `boards ${boards.length} (via ${via.size}, qmk ids ${qmk.size}, ambiguous skipped ${skipped}, via boards with legends ${labelled})`,
 );
+console.log(`identified ${ids.length}, models ${models.length}`);
 console.log(
   `layouts ${layouts.length}, extras ${extras.length}, makers ${makers.length}; json ${(json.length / 1024).toFixed(0)} KB, gzip ${(gz.length / 1024).toFixed(0)} KB`,
 );

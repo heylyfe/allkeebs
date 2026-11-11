@@ -31,7 +31,7 @@ function addKeyboardCard() {
       <h3>Add a keyboard</h3>
       <p>
         Plug it in with a cable, then pick it from the list Chrome shows. allkeebs recognises it
-        from a database of more than 3,000 keyboards. Lighting, keymap and macros work on VIA,
+        from a database of more than 4,500 keyboards. Lighting, keymap and macros work on VIA,
         Vial and QMK boards from any brand. Keychron Hall effect boards get keymaps, and Razer,
         Logitech, SteelSeries and Arbiter models get lighting.
         <button class="linkish" data-go="supported">See what’s supported</button>

@@ -20,7 +20,8 @@ export function autoLayout(kb) {
               cache: "the saved copy from usevia.app",
             }[kb.definitionSource] || "the keyboard database",
     };
-  if (kb.layoutHint) return { layout: presetLayout(kb.layoutHint), why: "the demo board’s layout" };
+  if (kb.layoutHint)
+    return { layout: presetLayout(kb.layoutHint), why: kb.layoutWhy || "the demo board’s layout" };
   for (const n of [kb.name, kb.device?.productName, kb.status?.layout]) {
     const g = guessFromName(n);
     if (g) return { layout: presetLayout(g.id), why: g.why };
