@@ -1,6 +1,6 @@
 // Overview tab: what we read from the keyboard, what can be changed, and its VIA definition.
 
-import { hex4, parseDefinitionText, store } from "../../devices.js";
+import { hex4, parseDefinitionText, pickDatabaseBoard, store } from "../../devices.js";
 import { loadKeymapLabels } from "../connect.js";
 import { $, esc, icons, toast } from "../dom.js";
 import { render } from "../shell.js";
@@ -74,6 +74,26 @@ function definitionStatus(kb) {
   );
 }
 
+// When boards share a USB id, let the user say which one this is.
+function boardPicker(kb) {
+  const e = kb.dbEntry;
+  if (kb.definitionSource !== "db" || !e?.others?.length) return "";
+  const names = [e.name, ...e.others];
+  const options = names
+    .map((n) => `<option ${n === e.name ? "selected" : ""}>${esc(n)}</option>`)
+    .join("");
+  const why =
+    e.matchedBy === "guess"
+      ? "Several keyboards share this USB id and its name didn’t settle it. Pick yours for the right layout and lighting menus"
+      : "Several keyboards share this USB id. If this isn’t yours, pick the right one";
+  return `
+    <label class="field" style="margin-top:16px">
+      <span>Which keyboard is this?</span>
+      <select class="inp" id="dbPick">${options}</select>
+    </label>
+    <p class="sub" style="margin:8px 0 0">${why}</p>`;
+}
+
 function definitionPanel(kb) {
   const secondary =
     kb.definitionSource === "file"
@@ -83,6 +103,7 @@ function definitionPanel(kb) {
     <div class="panel">
       <h2>${icons.file}VIA definition</h2>
       <p class="sub">${definitionStatus(kb)}</p>
+      ${boardPicker(kb)}
       <div class="btns">
         <label class="btn sm">
           ${icons.upload}Load .json
@@ -133,6 +154,14 @@ export function tabOverview(el, kb) {
         ${kb.family === "via" ? definitionPanel(kb) : ""}
       </div>
     </div>`;
+  const pick = $("#dbPick");
+  if (pick)
+    pick.onchange = async () => {
+      await pickDatabaseBoard(kb, pick.value);
+      await loadKeymapLabels(kb).catch(() => {});
+      toast(`Using the layout and menus for ${pick.value}`);
+      render();
+    };
   const f = $("#defFile");
   if (f)
     f.onchange = () => {

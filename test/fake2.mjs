@@ -121,4 +121,16 @@ const show = (a) =>
     await openKeyboard(fake({ vid: 0x1b1c, pid: 0x1b38, name: "CORSAIR K70 RGB PRO", via: false })),
   );
   show(await openKeyboard(fake({ vid: 0x1234, pid: 0x9999, name: "Rainy75", rows: 6, cols: 16 })));
+  // 320F:5055 is shared by six boards in the database; the reported name picks the Rainy 75.
+  const rainy = await openKeyboard(
+    fake({ vid: 0x320f, pid: 0x5055, name: "Rainy75", rows: 6, cols: 16 }),
+  );
+  show(rainy);
+  console.log(
+    `  picked by ${rainy.dbEntry?.matchedBy}, others: ${rainy.dbEntry?.others?.join(", ")}`,
+  );
+  const generic = await openKeyboard(
+    fake({ vid: 0x320f, pid: 0x5055, name: "USB Keyboard", rows: 6, cols: 16 }),
+  );
+  console.log(`  generic name -> ${generic.dbEntry?.name} (${generic.dbEntry?.matchedBy})`);
 })();

@@ -27,7 +27,12 @@ export function keyboardDb() {
 
       const boardIndex = new Map(),
         idIndex = new Map();
-      raw.boards.forEach((b, i) => boardIndex.set(b[0], i));
+      // Several boards can share one USB id: keep them all, in the order the builder ranked them.
+      raw.boards.forEach((b, i) => {
+        const list = boardIndex.get(b[0]) || [];
+        list.push(i);
+        boardIndex.set(b[0], list);
+      });
       ids.forEach((b, i) => idIndex.set(b[0], i));
 
       const board = (b) => {
@@ -97,17 +102,38 @@ export function keyboardDb() {
         e.name.toLowerCase().includes(s) || e.maker.toLowerCase().includes(s);
 
       return {
-        count: raw.boards.length + ids.length + models.length,
-        boardCount: raw.boards.length,
+        count: boardIndex.size + ids.length + models.length,
+        boardCount: boardIndex.size,
         idCount: ids.length,
         modelCount: models.length,
         viaCount: raw.boards.filter((b) => b[4] & 1).length,
         built: raw.built,
 
-        /** The entry for a USB id: a board with a layout first, then an identified keyboard. */
-        lookup(vid, pid) {
+        /**
+         * The entry for a USB id: a board with a layout first, then an identified keyboard.
+         * When boards share the id, the one the user picked wins, then one whose name appears
+         * in the name the keyboard reports, then the first. `others` lists the rest.
+         */
+        lookup(vid, pid, reported = "", picked = "") {
           const id = vid * 65536 + pid;
-          if (boardIndex.has(id)) return board(raw.boards[boardIndex.get(id)]);
+          if (boardIndex.has(id)) {
+            const list = boardIndex.get(id).map((i) => board(raw.boards[i]));
+            const said = norm(reported);
+            const byName = (e) => {
+              const n = norm(e.name);
+              return n.length >= 3 && (said.includes(n) || n.includes(said));
+            };
+            let chosen = picked && list.find((e) => e.name === picked);
+            let how = chosen ? "picked" : "only";
+            if (!chosen && list.length > 1) {
+              chosen = said.length >= 3 && list.find(byName);
+              how = chosen ? "name" : "guess";
+            }
+            chosen = chosen || list[0];
+            chosen.matchedBy = how;
+            chosen.others = list.filter((e) => e !== chosen).map((e) => e.name);
+            return chosen;
+          }
           if (idIndex.has(id)) return identified(ids[idIndex.get(id)]);
           return null;
         },

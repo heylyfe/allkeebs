@@ -12,6 +12,7 @@ import { keychronLayoutFor } from "@openmouse/keyboard-protocol/keychron";
 import { ARBITER_LIGHT_EFFECTS } from "@openmouse/keyboard-protocol/arbiter";
 import { exactLayout, sizeClass, assignCodes } from "./layouts.js";
 import { keyboardDb, servedDefinition } from "./kbdb.js";
+import { SONIX_FILTERS, sonixClient, sonixFamilyOf } from "./drivers/sonix.js";
 import xz from "xz-decompress";
 import { hsv } from "./effects.js";
 
@@ -63,7 +64,7 @@ const ANY_KEYBOARD = [
 
 export async function pickKeyboards(any) {
   return navigator.hid.requestDevice({
-    filters: any ? [] : [...SUPPORTED_HID_FILTERS, ...ANY_KEYBOARD],
+    filters: any ? [] : [...SUPPORTED_HID_FILTERS, ...SONIX_FILTERS, ...ANY_KEYBOARD],
   });
 }
 
@@ -79,7 +80,10 @@ export function onePerKeyboard(list) {
     const k = d.vendorId + ":" + d.productId + ":" + d.productName;
     (groups.get(k) || groups.set(k, []).get(k)).push(d);
   }
-  return [...groups.values()].map((g) => g.find((d) => createSupportedClient(d)) || g[0]);
+  // Prefer the interface a driver can talk to over the plain typing interface.
+  return [...groups.values()].map(
+    (g) => g.find((d) => sonixFamilyOf(d)) || g.find((d) => createSupportedClient(d)) || g[0],
+  );
 }
 
 // VIA built-in menus (VIA app names these instead of spelling them out)
@@ -330,7 +334,7 @@ export function parseDefinitionText(text) {
  * The board's VIA definition: a file the user loaded, then usevia.app (v3, then v2),
  * then the last good copy.
  */
-async function findDefinition(vid, pid, vialText) {
+async function findDefinition(vid, pid, vialText, reported = "") {
   const vpid = via.viaVendorProductId(vid, pid);
   const own = store.get("def.file." + vpid, null);
   if (own) {
@@ -348,7 +352,7 @@ async function findDefinition(vid, pid, vialText) {
     }
   }
   try {
-    const e = (await keyboardDb()).lookup(vid, pid);
+    const e = (await keyboardDb()).lookup(vid, pid, reported, store.get("db.pick." + vpid, ""));
     if (e?.hasLayout)
       return { def: via.parseViaDefinition(servedDefinition(e)), source: "db", entry: e };
   } catch {
@@ -604,6 +608,7 @@ async function viaAdapter(device, client, status, vialText) {
       }
       assignCodes(kb.exactLayout);
       kb.maker = found.entry?.maker || kb.maker;
+      kb.dbEntry = found.entry || null;
       kb.name = def.name || (status.name && status.name !== "VIA keyboard" ? status.name : kb.name);
       const menus = via.parseViaMenus(expandMenus(def.menus));
       kb.lighting = menus.length ? viaLighting(kb, menus, false) : null;
@@ -646,7 +651,9 @@ async function viaAdapter(device, client, status, vialText) {
       kb.lighting = viaLighting(kb, via.parseViaMenus([BUILT_IN.qmk_rgb_matrix()]), true);
     }
   };
-  await kb.attachDefinition(await findDefinition(device.vendorId, device.productId, vialText));
+  await kb.attachDefinition(
+    await findDefinition(device.vendorId, device.productId, vialText, device.productName),
+  );
   if ((v.macroCount || 0) > 0) {
     kb.macros = {
       count: v.macroCount,
@@ -864,6 +871,48 @@ function plainAdapter(device, client, status, family, note) {
 }
 
 /**
+ * EVision and Cherry boards (see drivers/sonix.js). Lighting only: built-in effects, colour,
+ * brightness and speed. Ported from OpenRGB and not yet tried on a real keyboard.
+ */
+async function sonixAdapter(device, family, log) {
+  const client = sonixClient(device, family);
+  await client.open();
+  log(`${family.brand} driver opened ${device.productName || "keyboard"}`);
+  const kb = base(device, client, { brand: family.brand, name: device.productName });
+  kb.family = "sonix";
+  kb.experimental = true;
+  kb.identity = identityRows(kb, {});
+  kb.facts = [
+    ["Connection", kb.connection],
+    ["Effects on the keyboard", family.modes.length],
+  ];
+  const effects = family.modes.map(([name, value]) => ({ name, value }));
+  const staticMode = effects[0];
+  kb.lighting = {
+    kind: "sonix",
+    effects,
+    has: { color: true, brightness: true, speed: true, effect: true },
+    note:
+      "Experimental: this driver comes from OpenRGB and hasn’t been tried on this keyboard yet. " +
+      "Changes are saved on the keyboard, like its own software does.",
+    async apply(p, fw) {
+      const mode = (fw || staticMode).value;
+      const brightness = Math.round((p.br / 100) * 4);
+      const speed = Math.round(((100 - p.speed) / 100) * family.slowest);
+      await client.setMode(mode, brightness, speed, rgbOf(p));
+    },
+    async off() {
+      await client.setMode(staticMode.value, 0, 0, [0, 0, 0]);
+    },
+  };
+  kb.notes.push(
+    `allkeebs drives this ${family.brand} keyboard’s lighting with a driver ported from OpenRGB. ` +
+      "Keys and macros aren’t supported.",
+  );
+  return kb;
+}
+
+/**
  * A keyboard no driver can configure. It's identified from the database or its name and
  * still gets a layout and the key test.
  */
@@ -907,6 +956,15 @@ async function identifiedAdapter(device, why) {
   return kb;
 }
 
+/**
+ * Several boards can share one USB id. Remember which one this keyboard is and load its
+ * definition from the database.
+ */
+export async function pickDatabaseBoard(kb, name) {
+  store.set("db.pick." + via.viaVendorProductId(kb.vid, kb.pid), name);
+  await kb.attachDefinition(await findDefinition(kb.vid, kb.pid, null, kb.device?.productName));
+}
+
 /** Opens one HID device with the best driver and returns its adapter. */
 export async function openKeyboard(device, log = () => {}) {
   const kb = await openWithDriver(device, log);
@@ -935,6 +993,8 @@ async function addSizeHint(kb, device) {
 }
 
 async function openWithDriver(device, log) {
+  const family = sonixFamilyOf(device);
+  if (family) return sonixAdapter(device, family, log);
   const client = createSupportedClient(device);
   if (!client) {
     log(`No driver for ${device.productName || "device"}, identifying it`);

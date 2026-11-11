@@ -18,21 +18,29 @@ because it includes the AGPL-licensed OpenMouse keyboard drivers. The parts belo
 The database is derived from these projects (names, USB ids, matrix sizes, key positions, legends and lighting menus).
 `tools/build-db.mjs` regenerates it from fresh copies (`npm run data && npm run build:db`).
 
-| Project                                                                              | Licence                          | Source                                                                 |
-| ------------------------------------------------------------------------------------ | -------------------------------- | ---------------------------------------------------------------------- |
-| the-via/keyboards                                                                    | GPL-3.0                          | https://github.com/the-via/keyboards                                   |
-| vial-kb/vial-qmk                                                                     | GPL-2.0-or-later                 | https://github.com/vial-kb/vial-qmk                                    |
-| qmk/qmk_firmware                                                                     | GPL-2.0-or-later                 | https://github.com/qmk/qmk_firmware                                    |
-| ViaMia/ViaMia-Keyboards                                                              | See its repository               | https://github.com/ViaMia/ViaMia-Keyboards                             |
-| Keychron, NuPhy, Epomaker, MonsGeek, Cipulot, ZSA and SonixQMK forks of qmk_firmware | GPL-2.0-or-later                 | https://github.com/Keychron/qmk_firmware and the matching repositories |
-| OpenRGB (keyboard USB ids and names)                                                 | GPL-2.0-or-later                 | https://gitlab.com/CalcProgrammer1/OpenRGB                             |
-| OpenRazer (Razer keyboard USB ids and names)                                         | GPL-2.0-or-later                 | https://github.com/openrazer/openrazer                                 |
-| ckb-next (Corsair keyboard USB ids)                                                  | GPL-2.0                          | https://github.com/ckb-next/ckb-next                                   |
-| Linux `drivers/hid/hid-ids.h`                                                        | GPL-2.0                          | https://github.com/torvalds/linux                                      |
-| The USB ID list (`usb.ids`, via systemd's copy)                                      | GPL-2.0-or-later or BSD-3-Clause | http://www.linux-usb.org/usb.ids                                       |
-| sinowealth-kb-tool                                                                   | MIT                              | https://github.com/carlossless/sinowealth-kb-tool                      |
+| Project                                                                                                      | Licence                          | Source                                                                 |
+| ------------------------------------------------------------------------------------------------------------ | -------------------------------- | ---------------------------------------------------------------------- |
+| the-via/keyboards                                                                                            | GPL-3.0                          | https://github.com/the-via/keyboards                                   |
+| vial-kb/vial-qmk                                                                                             | GPL-2.0-or-later                 | https://github.com/vial-kb/vial-qmk                                    |
+| qmk/qmk_firmware                                                                                             | GPL-2.0-or-later                 | https://github.com/qmk/qmk_firmware                                    |
+| ViaMia/ViaMia-Keyboards                                                                                      | See its repository               | https://github.com/ViaMia/ViaMia-Keyboards                             |
+| Keychron, NuPhy, Epomaker, MonsGeek, Cipulot, ZSA and SonixQMK forks of qmk_firmware                         | GPL-2.0-or-later                 | https://github.com/Keychron/qmk_firmware and the matching repositories |
+| OpenRGB (keyboard USB ids and names)                                                                         | GPL-2.0-or-later                 | https://gitlab.com/CalcProgrammer1/OpenRGB                             |
+| OpenRazer (Razer keyboard USB ids and names)                                                                 | GPL-2.0-or-later                 | https://github.com/openrazer/openrazer                                 |
+| ckb-next (Corsair keyboard USB ids)                                                                          | GPL-2.0                          | https://github.com/ckb-next/ckb-next                                   |
+| Linux `drivers/hid/hid-ids.h`                                                                                | GPL-2.0                          | https://github.com/torvalds/linux                                      |
+| The USB ID list (`usb.ids`, via systemd's copy)                                                              | GPL-2.0-or-later or BSD-3-Clause | http://www.linux-usb.org/usb.ids                                       |
+| sinowealth-kb-tool                                                                                           | MIT                              | https://github.com/carlossless/sinowealth-kb-tool                      |
+| VIA definition files shared on GitHub by keyboard makers and owners (list in `tools/github-via-sources.txt`) | As published by each repository  | https://github.com                                                     |
 
 `tools/models.txt` is allkeebs' own list of keyboard model names and sizes, gathered from public product pages and reviews.
+
+## Ported drivers
+
+`src/drivers/sonix.js` (EVision and Cherry keyboard lighting) is ported from OpenRGB's
+`EVisionKeyboardController` and `CherryKeyboardController` (GPL-2.0-or-later, by Adam Honse and
+contributors, https://gitlab.com/CalcProgrammer1/OpenRGB). The checksum follows packets captured
+by cherryrgb-rs (MIT, https://github.com/skraus-dev/cherryrgb-rs).
 
 ## Design
 

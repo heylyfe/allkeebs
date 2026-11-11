@@ -175,7 +175,15 @@ function scanQmk(root, into) {
 const qmk = new Map(); // vidpid -> [{name, maker, keys, leaf}]
 for (const root of opt.qmk) scanQmk(root, qmk);
 /* ---- VIA ---- */
-const via = new Map();
+const norm = (s) =>
+  String(s)
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+// Makers reuse USB ids across different boards (cheap chips ship with the same id), so an id can
+// hold several definitions; the app picks one by the name the keyboard reports. Official sources
+// come first, and each id keeps at most a handful of differently named boards.
+const MAX_PER_ID = 6;
+const via = new Map(); // id -> [definition]
 // VIA folders take any .json with a USB id and a keymap; Vial trees only their vial.json files.
 const viaSources = [
   ...opt.via.map((dir) => ({ dir, vialOnly: false })),
@@ -183,20 +191,23 @@ const viaSources = [
 ].filter((s) => existsSync(s.dir));
 for (const { dir, vialOnly } of viaSources) {
   for (const f of walk(dir).filter((p) =>
-    vialOnly ? p.endsWith("vial.json") : p.endsWith(".json"),
+    vialOnly ? p.endsWith("vial.json") : /\.json$/i.test(p),
   )) {
     let j;
     try {
-      j = JSON.parse(readFileSync(f, "utf8"));
+      j = JSON.parse(readFileSync(f, "utf8").replace(/^\uFEFF/, ""));
     } catch {
       continue;
     }
     if (!j.vendorId || !j.productId || !j.layouts?.keymap) continue;
     const id = hx(j.vendorId) * 65536 + hx(j.productId);
-    if (via.has(id)) continue;
+    const list = via.get(id) || [];
+    const label = typeof j.name === "string" ? norm(j.name) : "";
+    if (list.length >= MAX_PER_ID || list.some((x) => norm(x.name) === label)) continue;
     const keys = kle(j.layouts.keymap);
     if (!keys.length) continue;
-    via.set(id, {
+    via.set(id, list);
+    list.push({
       name: j.name,
       keys,
       rows: j.matrix?.rows,
@@ -233,80 +244,77 @@ const enc = (keys) => {
     return a;
   });
 };
-const norm = (s) =>
-  String(s)
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, "");
+
 const boards = [];
 let skipped = 0,
   labelled = 0;
 const allIds = new Set([...via.keys(), ...qmk.keys()]);
-for (const id of [...allIds].sort((a, b) => a - b)) {
-  const v = via.get(id),
-    qs = qmk.get(id) || [];
-  const names = new Set(qs.map((q) => norm(q.name)));
-  let q = null;
-  if (qs.length) {
-    if (v) q = qs.find((x) => norm(x.name) === norm(v.name)) || (names.size === 1 ? qs[0] : null);
-    else if (names.size === 1) q = qs.find((x) => x.leaf) || qs[0];
-    else {
-      skipped++;
-      continue;
-    }
-  }
-  let keys;
-  if (v) {
-    keys = v.keys.map((k) => ({ ...k }));
-    if (q) {
-      const lab = new Map(q.keys.filter((k) => k.l).map((k) => [k.r + "," + k.c, k.l]));
-      let n = 0;
-      for (const k of keys) {
-        const l = lab.get(k.r + "," + k.c);
-        if (l) {
-          k.l = l;
-          n++;
-        }
+for (const id of [...allIds].sort((a, b) => a - b))
+  for (const v of via.get(id) || [null]) {
+    const qs = qmk.get(id) || [];
+    const names = new Set(qs.map((q) => norm(q.name)));
+    let q = null;
+    if (qs.length) {
+      if (v) q = qs.find((x) => norm(x.name) === norm(v.name)) || (names.size === 1 ? qs[0] : null);
+      else if (names.size === 1) q = qs.find((x) => x.leaf) || qs[0];
+      else {
+        skipped++;
+        continue;
       }
-      if (n) labelled++;
     }
-  } else keys = q.keys;
-  const name = String(
-      (typeof v?.name === "string" && v.name) ||
-        q?.name ||
-        (v
-          ? v.path
-              .split("/")
-              .pop()
-              .replace(/\.json$/, "")
-              .replace(/vial$/, "")
-              .replace(/[-_]/g, " ")
-          : "") ||
-        "Keyboard",
-    ).trim(),
-    maker = String(q?.maker || "").trim();
-  const flags = (v ? 1 : 0) | (q ? 2 : 0) | (q?.rgb ? 4 : 0) | (q?.ug ? 8 : 0);
-  const ex =
-    v && (v.menus || v.keycodes || v.custom)
-      ? intern(extras, extraIdx, {
-          m: v.menus || undefined,
-          k: v.keycodes || undefined,
-          c: v.custom || undefined,
-        })
-      : -1;
-  const rows = v?.rows || Math.max(...keys.map((k) => k.r)) + 1,
-    cols = v?.cols || Math.max(...keys.map((k) => k.c)) + 1;
-  const row = [
-    id,
-    name,
-    maker ? intern(makers, makerIdx, maker) : -1,
-    intern(layouts, layoutIdx, enc(keys)),
-    flags,
-    rows,
-    cols,
-  ];
-  if (ex >= 0) row.push(ex);
-  boards.push(row);
-}
+    let keys;
+    if (v) {
+      keys = v.keys.map((k) => ({ ...k }));
+      if (q) {
+        const lab = new Map(q.keys.filter((k) => k.l).map((k) => [k.r + "," + k.c, k.l]));
+        let n = 0;
+        for (const k of keys) {
+          const l = lab.get(k.r + "," + k.c);
+          if (l) {
+            k.l = l;
+            n++;
+          }
+        }
+        if (n) labelled++;
+      }
+    } else keys = q.keys;
+    const name = String(
+        (typeof v?.name === "string" && v.name) ||
+          q?.name ||
+          (v
+            ? v.path
+                .split("/")
+                .pop()
+                .replace(/\.json$/, "")
+                .replace(/vial$/, "")
+                .replace(/[-_]/g, " ")
+            : "") ||
+          "Keyboard",
+      ).trim(),
+      maker = String(q?.maker || "").trim();
+    const flags = (v ? 1 : 0) | (q ? 2 : 0) | (q?.rgb ? 4 : 0) | (q?.ug ? 8 : 0);
+    const ex =
+      v && (v.menus || v.keycodes || v.custom)
+        ? intern(extras, extraIdx, {
+            m: v.menus || undefined,
+            k: v.keycodes || undefined,
+            c: v.custom || undefined,
+          })
+        : -1;
+    const rows = v?.rows || Math.max(...keys.map((k) => k.r)) + 1,
+      cols = v?.cols || Math.max(...keys.map((k) => k.c)) + 1;
+    const row = [
+      id,
+      name,
+      maker ? intern(makers, makerIdx, maker) : -1,
+      intern(layouts, layoutIdx, enc(keys)),
+      flags,
+      rows,
+      cols,
+    ];
+    if (ex >= 0) row.push(ex);
+    boards.push(row);
+  }
 /* ---- identified keyboards: USB id and name, no layout ---- */
 // "Logitech, Inc." and "Razer USA, Ltd" read better as "Logitech" and "Razer".
 const cleanMaker = (m) =>

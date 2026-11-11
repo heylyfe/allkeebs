@@ -66,7 +66,7 @@ const CREDITS = [
   ],
   [
     "OpenRGB",
-    "USB ids and names of keyboards from dozens of brands",
+    "USB ids and names of keyboards from dozens of brands, and the EVision and Cherry lighting drivers",
     "GPL-2.0-or-later",
     "https://gitlab.com/CalcProgrammer1/OpenRGB",
   ],
@@ -100,6 +100,18 @@ const CREDITS = [
     "Layouts from Keychron, NuPhy, Epomaker, MonsGeek, Cipulot and ZSA",
     "GPL-2.0-or-later",
     "https://github.com/Keychron/qmk_firmware",
+  ],
+  [
+    "cherryrgb-rs",
+    "Captured Cherry keyboard packets that check the ported lighting driver",
+    "MIT",
+    "https://github.com/skraus-dev/cherryrgb-rs",
+  ],
+  [
+    "Keyboard owners on GitHub",
+    "VIA files for boards whose makers only share them on their own sites",
+    "",
+    "https://github.com/heylyfe/allkeebs/blob/main/tools/github-via-sources.txt",
   ],
   ["esbuild", "Builds the site into one file", "MIT", "https://esbuild.github.io"],
 ];
