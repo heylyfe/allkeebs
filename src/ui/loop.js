@@ -1,5 +1,6 @@
 // One requestAnimationFrame loop draws every keyboard on screen.
-// Previews are throttled, and with reduced motion we only redraw when something changed.
+// Gallery cards (minis) hold a still frame and only animate while hovered or selected, so a page
+// full of them costs almost nothing. With reduced motion we only redraw when something changed.
 
 import { addHit, frameColors, pruneHits } from "../effects.js";
 import { state } from "./state.js";
@@ -40,6 +41,16 @@ function demoTick(t, layout) {
     t + 0.07 + Math.random() * 0.16 + (ch === " " ? 0.18 : 0) + (Math.random() < 0.04 ? 0.7 : 0);
 }
 
+// A still card shows its effect a couple of seconds in, so effects that build up (rain, stars,
+// typing trails from the demo text) have something on screen.
+function stillFrame(v, layout, out) {
+  const sim = simStateFor(v.simKey());
+  if (!v.warm) {
+    for (let i = 0; i <= 30; i++) frameColors(v.profile(), sim, i * 0.07, 0.07, layout, out);
+    v.warm = true;
+  } else frameColors(v.profile(), sim, 2.1, 0, layout, out);
+}
+
 export function loop(ms) {
   const t = ms / 1000,
     dt = Math.min(0.1, t - lastT);
@@ -53,6 +64,7 @@ export function loop(ms) {
     for (const v of views) {
       if (!v.view.layout || v.hidden) continue;
       if (v.mini && !slow && !dirty) continue;
+      if (v.mini && !v.live && v.drawn && !dirty) continue;
       if (v.kind === "lit") {
         const layout = v.view.layout,
           out =
@@ -60,6 +72,7 @@ export function loop(ms) {
               ? v.buf
               : (v.buf = new Float32Array(layout.keys.length * 3));
         if (state.off && !v.mini) out.fill(0);
+        else if (v.mini && !v.live) stillFrame(v, layout, out);
         else
           frameColors(
             v.profile(),
@@ -70,6 +83,7 @@ export function loop(ms) {
             out,
           );
         v.lt = t;
+        v.drawn = true;
         v.view.draw(out, null);
       } else v.view.draw(null, v.state);
     }

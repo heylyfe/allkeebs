@@ -22,7 +22,7 @@ const res = await build({
   platform: "browser",
   legalComments: "eof",
   logLevel: "warning",
-  loader: { ".gz": "base64" },
+  loader: { ".gz": "base64", ".bin": "binary", ".txt": "text" },
   define: {
     __VERSION__: JSON.stringify(pkg.version),
     __SOURCE_URL__: JSON.stringify(repo),

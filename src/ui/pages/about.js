@@ -102,6 +102,12 @@ const CREDITS = [
     "https://github.com/Keychron/qmk_firmware",
   ],
   [
+    "GloVe",
+    "Word vectors behind the lighting search, by Pennington, Socher and Manning (Stanford NLP)",
+    "PDDL 1.0",
+    "https://nlp.stanford.edu/projects/glove/",
+  ],
+  [
     "cherryrgb-rs",
     "Captured Cherry keyboard packets that check the ported lighting driver",
     "MIT",

@@ -8,7 +8,7 @@ allkeebs works with keyboards from almost any brand. Plug yours in, click **Conn
 
 ## What you can do
 
-- **Lighting.** Choose from over 1,000 lighting profiles across 49 effects and preview each one live before sending it to the keyboard. Tune colour, brightness and speed. Boards that support VIA also show their own extra lighting settings.
+- **Lighting.** Choose from over 1,000 lighting profiles across 49 effects and preview each one live before sending it to the keyboard. Search by mood, like “calm sea” or “spooky”, not just by name. Tune colour, brightness and speed. Boards that support VIA also show their own extra lighting settings.
 - **Keymap.** Change what any key does, on any layer. For example, move Caps Lock, add media keys or set up an Fn layer.
 - **Macros.** Record a shortcut or a phrase by typing it, or build one step by step. Then put it on a key.
 - **Key test.** Press every key to check it works. allkeebs spots keys that double-type ("chatter"). This works on any keyboard, even ones allkeebs can't configure.

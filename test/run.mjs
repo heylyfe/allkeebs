@@ -9,7 +9,7 @@ for (const t of ["fakevia", "fake2", "fake-sonix"]) {
     bundle: true,
     platform: "node",
     format: "cjs",
-    loader: { ".gz": "base64" },
+    loader: { ".gz": "base64", ".bin": "binary", ".txt": "text" },
     outfile: `test/.out/${t}.cjs`,
     logLevel: "error",
   });

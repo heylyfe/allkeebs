@@ -7,7 +7,17 @@ import {
   viaValueToNumber,
 } from "@openmouse/keyboard-protocol/via";
 import { store } from "../../devices.js";
-import { FX, GROUPS, PRESETS, hsv, matchEffect, rgbToHsv, toHex } from "../../effects.js";
+import {
+  FX,
+  GROUPS,
+  PRESETS,
+  hsv,
+  matchEffect,
+  presetWords,
+  rgbToHsv,
+  toHex,
+} from "../../effects.js";
+import { rankByMeaning } from "../../search.js";
 import { KeyboardView } from "../../render.js";
 import { $, $$, esc, icons, toast } from "../dom.js";
 import { layoutFor } from "../layout-choice.js";
@@ -67,13 +77,10 @@ function queueLighting() {
 
 const PROFILES_PER_PAGE = 24;
 
+// The group filter, then the search ranked by meaning ("calm sea", "spooky", "hacker").
 function profileList() {
-  const q = state.lq.trim().toLowerCase();
-  return profiles.filter(
-    (p) =>
-      (state.lg === "all" || p.group === state.lg) &&
-      (!q || p.name.toLowerCase().includes(q) || FX[p.fx].name.toLowerCase().includes(q)),
-  );
+  const inGroup = profiles.filter((p) => state.lg === "all" || p.group === state.lg);
+  return rankByMeaning(inGroup, state.lq, presetWords, (p) => p.name);
 }
 
 let miniObs = null;
@@ -149,18 +156,25 @@ function fillProfiles(reset) {
   if (!grid) return;
   const layout = layoutFor(state.cur),
     list = profileList();
-  if (reset) state.lshown = PROFILES_PER_PAGE;
-  const n = Math.min(list.length, state.lshown);
+  const pages = Math.max(1, Math.ceil(list.length / PROFILES_PER_PAGE));
+  if (reset) state.lpage = 0;
+  state.lpage = Math.min(Math.max(0, state.lpage || 0), pages - 1);
+  const first = state.lpage * PROFILES_PER_PAGE,
+    shown = list.slice(first, first + PROFILES_PER_PAGE);
+
   views.splice(1);
   if (miniObs) miniObs.disconnect();
   miniObs = new IntersectionObserver((ents) => {
     for (const e of ents) {
       const v = views.find((x) => x.el === e.target);
-      if (v) v.hidden = !e.isIntersecting;
+      if (!v) continue;
+      v.hidden = !e.isIntersecting;
+      if (e.isIntersecting) v.drawn = false; // sized and on screen now: draw its still frame
     }
+    markDirty();
   });
-  grid.innerHTML = n
-    ? list.slice(0, n).map(profileCard).join("")
+  grid.innerHTML = shown.length
+    ? shown.map(profileCard).join("")
     : `<div class="empty" style="grid-column:1/-1">
         <b>No profile matches</b>Try another word or group
       </div>`;
@@ -168,41 +182,48 @@ function fillProfiles(reset) {
     const profile = profilesById.get(b.dataset.pid),
       view = new KeyboardView($("canvas", b), { mini: true });
     view.setLayout(layout);
-    views.push({
+    const v = {
       view,
       el: b,
       kind: "lit",
       mini: true,
+      live: profile.id === state.profileId,
       profile: () => profile,
       simKey: () => "mini:" + profile.id,
-    });
+    };
+    views.push(v);
     miniObs.observe(b);
+    // Cards hold a still frame and play while hovered, or while they're the chosen profile.
+    b.onmouseenter = () => (v.live = true);
+    b.onmouseleave = () => (v.live = profile.id === state.profileId);
     b.onclick = () => {
       lightingSnapshot();
       state.profileId = profile.id;
       store.set("profile", profile.id);
       $$(".pcard", grid).forEach((x) => x.classList.toggle("on", x === b));
+      for (const other of views) if (other.mini) other.live = other === v;
       renderTune();
       queueLighting();
       markDirty();
     };
   });
-  const nextPage = Math.min(PROFILES_PER_PAGE, list.length - n);
-  if (n < list.length) {
-    $("#pMore").innerHTML = `
-      <button class="btn sm" id="pMoreBtn">Show ${nextPage} more</button>
-      <span class="sub">${n} of ${list.length}</span>`;
-  } else if (list.length > PROFILES_PER_PAGE) {
-    $("#pMore").innerHTML = `<span class="sub">All ${list.length} shown</span>`;
-  } else {
-    $("#pMore").innerHTML = "";
-  }
-  const mb = $("#pMoreBtn");
-  if (mb)
-    mb.onclick = () => {
-      state.lshown += PROFILES_PER_PAGE;
+
+  const more = $("#pMore");
+  if (pages > 1) {
+    more.innerHTML = `
+      <button class="btn sm" id="pPrev" ${state.lpage === 0 ? "disabled" : ""}>Previous</button>
+      <span class="sub">Page ${state.lpage + 1} of ${pages} · ${list.length} profiles</span>
+      <button class="btn sm" id="pNext" ${state.lpage === pages - 1 ? "disabled" : ""}>Next</button>`;
+    const turn = (by) => {
+      state.lpage += by;
       fillProfiles(false);
+      $("#pgrid")?.scrollIntoView({ block: "nearest" });
     };
+    $("#pPrev").onclick = () => turn(-1);
+    $("#pNext").onclick = () => turn(1);
+  } else {
+    more.innerHTML = list.length > 1 ? `<span class="sub">${list.length} profiles</span>` : "";
+  }
   markDirty();
 }
 

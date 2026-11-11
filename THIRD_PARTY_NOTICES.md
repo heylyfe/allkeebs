@@ -35,6 +35,13 @@ The database is derived from these projects (names, USB ids, matrix sizes, key p
 
 `tools/models.txt` is allkeebs' own list of keyboard model names and sizes, gathered from public product pages and reviews.
 
+## Lighting search
+
+`src/search-vectors.bin` and `src/search-words.txt` are derived from GloVe (glove.6B, 50
+dimensions, Wikipedia 2014 + Gigaword 5) by Jeffrey Pennington, Richard Socher and Christopher D.
+Manning, released under the Open Data Commons Public Domain Dedication and License (PDDL) 1.0,
+https://nlp.stanford.edu/projects/glove/. `tools/build-vectors.py` rebuilds them.
+
 ## Ported drivers
 
 `src/drivers/sonix.js` (EVision and Cherry keyboard lighting) is ported from OpenRGB's

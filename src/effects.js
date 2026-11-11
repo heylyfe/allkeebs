@@ -846,6 +846,100 @@ const RAINBOW = {
   rainbowbreathe: "Rainbow breath",
 };
 
+// What each effect looks like, in plain words. Search matches these by meaning, so "calm sea"
+// finds the tide and "spooky" finds ghost keys even though neither word is in a name.
+export const DESCRIBE = {
+  solid:
+    "one steady colour, still, simple, calm, plain, constant glow, minimal, clean, office, work",
+  breathe: "slow breathing pulse, fades in and out, calm, relaxing, sleepy, gentle",
+  wave: "rainbow wave flowing sideways across the keys, colourful, smooth, classic gaming",
+  chevron: "rainbow arrows sweeping across the board, fast, neon, gaming, energetic",
+  spiral: "rainbow swirl spinning around the centre, hypnotic, vortex, psychedelic",
+  pinwheel: "spinning rainbow pinwheel, rotating colours, playful, circus",
+  ripple: "rainbow rings spreading out from the middle, water drops, circles, waves",
+  cycle: "whole board changes colour slowly through the rainbow, smooth, calm",
+  gradient: "soft two colour blend from top to bottom, sunset, pastel, gentle, still",
+  aurora: "northern lights, soft green and violet curtains drifting, sky, night, magical",
+  pendulum: "colours swinging side to side like a pendulum, rhythm, clock, hypnotic",
+  beacon: "lighthouse beam sweeping round, searchlight, sea, night, rotating",
+  raindrops: "raindrops falling on random keys, rain, storm, weather, water, cosy",
+  jelly: "random sweets coloured keys popping, candy, jellybeans, fun, party",
+  matrix: "green code rain falling down, hacker, computer, matrix, digital, cyber",
+  pixel: "random coloured pixels flickering, retro, arcade, glitch, noise",
+  heat: "keys glow hotter the more you type them, typing heatmap, reactive, fire",
+  reactive:
+    "keys light up when pressed and fade away like ghosts, spooky, haunted, halloween, typing, reactive",
+  splash: "colour splashes out from each key you press, ripple, typing, reactive, water",
+  starlight: "stars twinkling on a dark board, night sky, space, calm, sparkle",
+  glitter: "glittering sparkles over a soft glow, shiny, magic, festive, christmas",
+  fire: "flames flickering up from the bottom, fire, burning, hot, campfire, warm",
+  ocean: "slow rolling sea tide, waves, water, beach, calm, chill, deep",
+  snake: "a snake slithering around the keys, retro game, nokia, moving line",
+  scanner: "bar sweeping back and forth, scanner, knight rider, cylon, robot, sci-fi",
+  comet: "comet streaking across with a fading tail, space, shooting star, fast",
+  radar: "radar sweep rotating round, military, sonar, submarine, scanning",
+  plasma: "liquid plasma blobs morphing, lava lamp, psychedelic, trippy, smooth",
+  heartbeat: "double pulse like a heartbeat, love, alive, valentine, rhythm",
+  sunrise: "warm glow rising from the bottom, sunrise, dawn, morning, sunset, cosy",
+  bands: "horizontal bands rolling down, stripes, retro, scanlines, rhythm",
+  twotone: "board split into two colours with a moving edge, contrast, duo, bold",
+  lava: "slow molten lava flowing, volcano, magma, hot, warm, lava lamp",
+  zigzag: "zigzag stripes marching across, energetic, pattern, retro",
+  candle: "warm candle flicker, cosy, romantic, cabin, gentle, calm, evening",
+  cross: "crosshair lines shooting out from each key you press, gaming, targeting, fps",
+  sonar: "rings pulsing out from the centre like sonar, submarine, ocean, radar, ping",
+  spotlight: "soft spotlight drifting around a dark board, stage, theatre, focus",
+  fireflies: "fireflies glowing softly here and there, summer night, garden, calm, nature",
+  lightning:
+    "dark stormy sky with sudden lightning flashes, thunder, storm, weather, dramatic, spooky, eerie",
+  confetti: "random bright colours flashing on every key, party, celebration, disco, fun",
+  rows: "each row a different colour of the rainbow, drifting, stripes, colourful",
+  sine: "a glowing sine wave line moving across, oscilloscope, audio, music, science",
+  helix: "two intertwined glowing lines, dna, double helix, science, sci-fi",
+  checker: "checkerboard squares flipping, chess, retro arcade, pattern, disco floor",
+  wipe: "new colour wipes across the board again and again, paint, sweep",
+  neon: "steady neon sign with the odd flicker, diner, retro, night city, cyberpunk",
+  rainbowbreathe: "slow breathing that changes colour each breath, mood ring, calm, rainbow",
+  trail: "keys you press glow and cool down slowly, typewriter, typing trails, reactive",
+};
+
+export const COLOUR_WORDS = {
+  Crimson: "red crimson deep blood",
+  Ember: "orange ember glowing coal warm",
+  Amber: "amber orange yellow honey warm",
+  Lemon: "yellow lemon bright citrus",
+  Lime: "lime green bright fresh",
+  Jade: "green jade emerald",
+  Mint: "mint pale green fresh",
+  Teal: "teal cyan blue green",
+  Ice: "ice pale blue cold frozen winter",
+  Sky: "sky blue light day",
+  Cobalt: "blue cobalt deep",
+  Indigo: "indigo deep blue purple",
+  Violet: "violet purple",
+  Orchid: "orchid purple pink",
+  Rose: "rose pink",
+  Sakura: "sakura pale pink cherry blossom spring japan",
+  White: "white pure clean neutral",
+  Coral: "coral pinkish orange reef",
+  Peach: "peach soft orange pastel",
+  Gold: "gold golden yellow luxury",
+  Olive: "olive green khaki military",
+  Forest: "forest dark green woods nature",
+  Aqua: "aqua turquoise water pool",
+  Navy: "navy dark blue night",
+  Lavender: "lavender pale purple soft pastel",
+  Magenta: "magenta hot pink fuchsia vivid",
+  Ruby: "ruby deep red gem",
+};
+
+/** The words search compares against for one preset: its name, effect and colour. */
+export function presetWords(p) {
+  const colour = Object.keys(COLOUR_WORDS).find((c) => p.name.startsWith(c + " "));
+  const mood = p.s < 50 ? "pastel soft pale" : "";
+  return [p.name, DESCRIBE[p.fx], colour ? COLOUR_WORDS[colour] : "", mood].join(" ");
+}
+
 // Hand-tuned scenes: an effect, a hue, saturation and speed that suit a name.
 const THEMES = [
   ["cyberpunk", "Cyberpunk", "chevron", 300, 100, 55],

@@ -16,7 +16,7 @@ export const state = {
   off: false,
   lg: "all",
   lq: "",
-  lshown: 24,
+  lpage: 0,
   pending: [],
   lightSnap: null,
   viaValues: null,

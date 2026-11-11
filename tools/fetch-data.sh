@@ -36,4 +36,9 @@ raw=https://raw.githubusercontent.com
 [ -d openrazer ] || git clone -q --depth 1 https://github.com/openrazer/openrazer.git openrazer
 sparse openrgb CalcProgrammer1/OpenRGB "" '/Controllers/**'
 
+# Word vectors for the lighting search (GloVe 50d, via gensim-data's GitHub release)
+mkdir -p glove
+[ -f glove/glove50.gz ] || curl -sSfLo glove/glove50.gz \
+  https://github.com/RaRe-Technologies/gensim-data/releases/download/glove-wiki-gigaword-50/glove-wiki-gigaword-50.gz
+
 echo "Data ready. Now run: npm run build:db && npm run build"
