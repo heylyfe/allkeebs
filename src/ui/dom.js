@@ -22,8 +22,12 @@ export const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
 const pad2 = (n) => String(n).padStart(2, "0");
 
+// Lucide 1.x exports an icon as its child elements, [[tag, attrs], ...]; older releases
+// wrapped them as ["svg", attrs, children]. Accept both, and fail loudly on a missing icon.
 function icon(node, cls = "i") {
-  const kids = (node?.[2] || [])
+  if (!Array.isArray(node)) throw new Error("Missing Lucide icon");
+  const children = node[0] === "svg" ? node[2] : node;
+  const kids = (children || [])
     .map(
       ([tag, attrs]) =>
         `<${tag} ${Object.entries(attrs)
@@ -68,7 +72,8 @@ export const icons = {
   plus: icon(L.Plus),
   about: icon(L.Heart),
   ext: icon(L.ArrowUpRight),
-  github: icon(L.Github),
+  // Lucide 1.0 dropped brand logos, so the source link uses a generic code icon.
+  github: icon(L.CodeXml),
   light: icon(L.Lightbulb),
   info: icon(L.Info),
   alert: icon(L.TriangleAlert),

@@ -212,7 +212,16 @@ import { viaActiveKeys } from "@openmouse/keyboard-protocol/via";
   reloadStoredState();
   assert.equal(state.prefs.theme, "dark");
   assert.equal(state.keytestLayout, "100");
-  console.log("geometry, identity, Logitech off, database and saved-state regressions passed");
+
+  // Every UI icon must draw something: a Lucide upgrade that renames an icon or changes
+  // its export shape would otherwise leave blank buttons with no build error.
+  const { icons } = await import("../src/ui/dom.js");
+  for (const [name, svg] of Object.entries(icons))
+    assert.match(svg, /<svg [^>]*>\s*<(path|circle|rect|line|polyline|polygon|ellipse) /, name);
+
+  console.log(
+    "geometry, identity, Logitech off, database, saved-state and icon regressions passed",
+  );
 })().catch((error) => {
   console.error(error);
   process.exitCode = 1;

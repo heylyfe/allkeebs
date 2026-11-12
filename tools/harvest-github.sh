@@ -10,12 +10,13 @@ out=data/github-via
 mkdir -p "$out"
 list=$(mktemp)
 
-BRANDS="rainy wobkey aula epomaker monsgeek akko womier weikav lucky65 leobog yunzii ajazz cidoo
+# Pass BRANDS="a b" to retry only some brands (for example after a rate-limited search).
+BRANDS=${BRANDS:-"rainy wobkey aula epomaker monsgeek akko womier weikav lucky65 leobog yunzii ajazz cidoo
 skyloong royal_kludge rk61 rk68 rk84 rk100 kiiboom attack_shark lofree feker zifriend varmilo
 gamakay madlions mchose vgn irok drunkdeer nuphy keydous melgeek qwertykeys kbdfans tofu
 redragon gmmk glorious ducky dareu durgod tecware fantech machenike darmoshark xinmeng zuoya
 idobao womier kemove magegee newmen mathew_lab wuque owlab meletrix zoom75 neo65 neo70 qk65 qk75
-cyberboard angry_miao keebmonkey lumi kzzi aflion ciy coolkiller gravastar inky75 elecfox"
+cyberboard angry_miao keebmonkey lumi kzzi aflion ciy coolkiller gravastar inky75 elecfox"}
 
 for b in $BRANDS; do
   q=$(printf '%s' "$b" | tr '_' ' ')
