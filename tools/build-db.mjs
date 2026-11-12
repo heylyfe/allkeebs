@@ -208,6 +208,7 @@ const norm = (s) =>
 // hold several definitions; the app picks one by the name the keyboard reports. Official sources
 // come first, and each id keeps at most a handful of differently named boards.
 const MAX_PER_ID = 6;
+const GITHUB_VIA = /(^|\/)github-via\//;
 const via = new Map(); // id -> [definition]
 // VIA folders take any .json with a USB id and a keymap; Vial trees only their vial.json files.
 const viaSources = [
@@ -228,16 +229,29 @@ for (const { dir, vialOnly } of viaSources) {
     const id = hx(j.vendorId) * 65536 + hx(j.productId);
     const list = via.get(id) || [];
     const label = typeof j.name === "string" ? norm(j.name) : "";
-    if (list.length >= MAX_PER_ID || list.some((x) => norm(x.name) === label)) continue;
+    const menus = j.menus ?? (j.lighting ? { lighting: j.lighting } : null);
+    const same = list.findIndex((x) => norm(x.name) === label);
+    // Community files vary: a personal copy may drop the lighting menus. For the same board on
+    // the same id, a GitHub file with menus replaces an earlier GitHub file without them.
+    // Official sources always come first and are never replaced.
+    const upgrade =
+      same >= 0 &&
+      menus &&
+      !list[same].menus &&
+      GITHUB_VIA.test(list[same].path) &&
+      GITHUB_VIA.test(f);
+    if (same >= 0 && !upgrade) continue;
+    if (same < 0 && list.length >= MAX_PER_ID) continue;
     const keys = kle(j.layouts.keymap);
     if (!keys.length) continue;
     via.set(id, list);
-    list.push({
+    if (upgrade) list.splice(same, 1);
+    list.splice(upgrade ? same : list.length, 0, {
       name: j.name,
       keys,
       rows: j.matrix?.rows,
       cols: j.matrix?.cols,
-      menus: j.menus ?? (j.lighting ? { lighting: j.lighting } : null),
+      menus,
       keycodes: j.keycodes || null,
       custom: j.customKeycodes || null,
       path: f,

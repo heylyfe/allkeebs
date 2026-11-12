@@ -21,6 +21,16 @@ A desktop app for Windows. The website is unchanged; nothing to migrate.
 - The website's macro editor gained an extension point (`src/ui/extensions.js`) that it leaves
   empty, so it behaves exactly as before.
 
+Fixes to 1.0.1 and 1.0.2:
+
+- **Rainy 75 lighting is back.** The 1.0.1 database refresh picked a personal VIA file without
+  lighting menus for the Rainy 75 (320F:5055), so its lighting settings disappeared. When several
+  GitHub files describe the same board, the database build now keeps one with lighting menus, and
+  a regression test checks the Rainy 75.
+- **The site is built from LF line endings everywhere.** `.gitattributes` now checks text files out
+  with LF on every OS. Pages built on Windows had carriage returns inside the bundle; they worked
+  but didn't match the source, which CI now checks.
+
 ## 1.0.2 — 2026-11-12
 
 Groundwork for a desktop app. The website works exactly as before; nothing to migrate.
