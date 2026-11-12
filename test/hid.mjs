@@ -1,0 +1,55 @@
+// HID report descriptors -> WebHID-style collections, as the desktop transport builds them.
+import assert from "node:assert/strict";
+import { parseReportDescriptor, reportLength, usesReportIds } from "../src/hid/descriptor.js";
+
+// VIA raw HID (QMK): vendor page 0xFF60, usage 0x61, 32-byte input and output, no report ids.
+const VIA = [
+  0x06, 0x60, 0xff, 0x09, 0x61, 0xa1, 0x01, 0x09, 0x62, 0x15, 0x00, 0x26, 0xff, 0x00, 0x95, 0x20,
+  0x75, 0x08, 0x81, 0x02, 0x09, 0x63, 0x15, 0x00, 0x26, 0xff, 0x00, 0x95, 0x20, 0x75, 0x08, 0x91,
+  0x02, 0xc0,
+];
+const via = parseReportDescriptor(VIA);
+assert.equal(via.length, 1);
+assert.equal(via[0].usagePage, 0xff60);
+assert.equal(via[0].usage, 0x61);
+assert.deepEqual(
+  via[0].inputReports.map((r) => r.reportId),
+  [0],
+);
+assert.equal(reportLength(via, "inputReports", 0), 32);
+assert.equal(reportLength(via, "outputReports", 0), 32);
+assert.equal(usesReportIds(via), false);
+console.log("ok   VIA raw HID: one 0xFF60:0x61 collection, 32-byte reports, no ids");
+
+// Logitech HID++ short (id 0x10, 6 bytes) and long (id 0x11, 19 bytes) reports.
+const HIDPP = [
+  0x06, 0x00, 0xff, 0x09, 0x01, 0xa1, 0x01, 0x85, 0x10, 0x75, 0x08, 0x95, 0x06, 0x15, 0x00, 0x26,
+  0xff, 0x00, 0x09, 0x01, 0x81, 0x00, 0x09, 0x01, 0x91, 0x00, 0xc0, 0x06, 0x00, 0xff, 0x09, 0x02,
+  0xa1, 0x01, 0x85, 0x11, 0x75, 0x08, 0x95, 0x13, 0x15, 0x00, 0x26, 0xff, 0x00, 0x09, 0x02, 0x81,
+  0x00, 0x09, 0x02, 0x91, 0x00, 0xc0,
+];
+const hidpp = parseReportDescriptor(HIDPP);
+assert.deepEqual(
+  hidpp.map((c) => [c.usagePage, c.usage, c.outputReports[0].reportId]),
+  [
+    [0xff00, 1, 0x10],
+    [0xff00, 2, 0x11],
+  ],
+);
+assert.equal(reportLength(hidpp, "outputReports", 0x10), 6);
+assert.equal(reportLength(hidpp, "outputReports", 0x11), 19);
+assert.equal(usesReportIds(hidpp), true);
+console.log("ok   HID++: numbered short and long reports in two collections");
+
+// A feature report inside a nested collection, a 4-byte usage, and push/pop of globals.
+const NESTED = [
+  0x05, 0x01, 0x09, 0x06, 0xa1, 0x01, 0xa4, 0x85, 0x05, 0x0b, 0x01, 0x00, 0x54, 0xff, 0xa1, 0x02,
+  0x75, 0x08, 0x96, 0x84, 0x02, 0xb1, 0x02, 0xc0, 0xb4, 0x75, 0x01, 0x95, 0x08, 0x81, 0x02, 0xc0,
+];
+const nested = parseReportDescriptor(NESTED);
+assert.equal(nested[0].usagePage, 0x01);
+assert.equal(nested[0].children[0].usagePage, 0xff54, "4-byte usage carries its page");
+assert.equal(nested[0].children[0].featureReports[0].reportId, 5);
+assert.equal(reportLength(nested, "featureReports", 5), 644, "nested feature report length");
+assert.equal(nested[0].inputReports[0].reportId, 0, "pop restores the report id");
+console.log("ok   nested collections, extended usages and push/pop");

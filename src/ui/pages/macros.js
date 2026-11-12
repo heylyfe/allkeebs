@@ -3,6 +3,7 @@
 import { VIA_DELAY_PROTOCOL, VIA_FROM_EVENT, store } from "../../devices.js";
 import { $, $$, clamp, esc, icons, toast } from "../dom.js";
 import { renderTab } from "./device.js";
+import { macroPanels } from "../extensions.js";
 import { setPending } from "../pending.js";
 import { state } from "../state.js";
 
@@ -122,6 +123,7 @@ export async function tabMacros(el, kb) {
   const sel = macroEdit.sel;
   const slots = macroEdit.list.map((acts, i) => slotButton(acts, i, macroEdit, describe)).join("");
   const memoryUsed = Math.min(100, (used / Math.max(1, size)) * 100);
+  const extra = { kb, slot: sel, steps: m, name: macroEdit.names[sel] || `Macro ${sel}` };
   const steps = m.length
     ? m.map((x, i) => stepRow(x, i, opts)).join("")
     : `<div class="empty">No steps. Press Record and type a shortcut, or add steps below</div>`;
@@ -168,6 +170,7 @@ export async function tabMacros(el, kb) {
           presses. Only plain ASCII characters can be typed${delays ? "" : ". This firmware doesn’t support waits"}.
           To run a macro, put M${sel} on a key in the Keymap tab.
         </p>
+        ${macroPanels.map((p) => p.html(extra)).join("")}
       </div>
     </div>`;
   $$("select[data-f=keycode]", el).forEach((s) => (s.value = String(m[+s.dataset.i].keycode)));
@@ -261,6 +264,7 @@ export async function tabMacros(el, kb) {
   const dl = $("#mDelays");
   if (dl) dl.onchange = () => store.set("recDelays", dl.checked);
   $("#mRec").onclick = () => (recording ? stopRecording() : startRecording());
+  for (const p of macroPanels) p.bind(el, extra);
 }
 
 export let recording = null;

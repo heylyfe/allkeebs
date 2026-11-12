@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "The main window may listen for HID and plug events. allkeebs' own commands (HID, hotkey macros) are allowed for this window only.",
+  "windows": ["main"],
+  "permissions": ["core:event:default"]
+}

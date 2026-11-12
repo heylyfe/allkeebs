@@ -4,3 +4,4 @@ test/.out/
 out/
 dist/
 .DS_Store
+desktop-dist/

@@ -1,0 +1,32 @@
+[package]
+name = "allkeebs"
+version = "1.1.0"
+description = "Keyboard lighting, keymaps and macros, with hotkey macros that keep working from the tray"
+authors = ["heylyfe"]
+license = "AGPL-3.0-or-later"
+repository = "https://github.com/heylyfe/allkeebs"
+edition = "2021"
+rust-version = "1.80"
+
+[lib]
+name = "allkeebs_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-global-shortcut = "2"
+tauri-plugin-single-instance = "2"
+hidapi = "2.6"
+enigo = "0.6"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

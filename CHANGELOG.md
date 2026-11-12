@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.1.0 — 2026-11-12
+
+A desktop app for Windows. The website is unchanged; nothing to migrate.
+
+- **Desktop app** (`src-tauri/`, Tauri 2): the same interface and drivers as the website. Desktop
+  webviews have no WebHID, so USB goes through hidapi in Rust (`src-tauri/src/hid.rs`), reached
+  over Tauri IPC by a new transport (`src/hid/tauri.js`). Device report layouts come from each
+  device's HID descriptor (`src/hid/descriptor.js`), so drivers see what Chrome would show them.
+- **Connecting** works like the browser: you pick keyboards once in a chooser, and allkeebs
+  remembers them. Allowed keyboards reconnect on their own when plugged back in.
+- **Hotkey macros**, desktop only: in the Macros tab, put a macro on a shortcut and it types the
+  macro on this computer, even with the window closed. allkeebs then stays in the tray, where
+  hotkeys can be paused. Off until you set a hotkey; nothing is sent to the keyboard.
+- **CI** (`.github/workflows/ci.yml`): builds and tests the website and checks that
+  `docs/index.html` matches the source; builds the Windows installers (NSIS and MSI) with
+  `cargo fmt` and `clippy` checks.
+- The installer includes `LICENSE`, `THIRD_PARTY_NOTICES.md` and the licence text of every Rust
+  crate in the app (`tools/crate-notices.mjs`).
+- The website's macro editor gained an extension point (`src/ui/extensions.js`) that it leaves
+  empty, so it behaves exactly as before.
+
 ## 1.0.2 — 2026-11-12
 
 Groundwork for a desktop app. The website works exactly as before; nothing to migrate.
