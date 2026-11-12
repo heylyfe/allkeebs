@@ -356,23 +356,60 @@ const LAYOUT_DEFS = {
 
 export const PRESET_IDS = ["40", "60", "65", "75", "80", "96", "100"];
 
+/** The primary and optional secondary KLE rectangles, before the key rotation. */
+export function keyRectangles(key) {
+  const rects = [{ x: key.x, y: key.y, w: key.w, h: key.h }];
+  if (key.x2 != null && key.y2 != null && key.w2 > 0 && key.h2 > 0)
+    rects.push({ x: key.x + key.x2, y: key.y + key.y2, w: key.w2, h: key.h2 });
+  return rects;
+}
+
+function rotatedPoint(key, x, y) {
+  const r = ((key.r || 0) * Math.PI) / 180;
+  if (!r) return { x, y };
+  const ox = key.rx || 0,
+    oy = key.ry || 0,
+    dx = x - ox,
+    dy = y - oy,
+    c = Math.cos(r),
+    s = Math.sin(r);
+  return { x: ox + dx * c - dy * s, y: oy + dx * s + dy * c };
+}
+
+function keyPoints(key) {
+  return keyRectangles(key).flatMap(({ x, y, w, h }) =>
+    [
+      [x, y],
+      [x + w, y],
+      [x, y + h],
+      [x + w, y + h],
+    ].map(([px, py]) => rotatedPoint(key, px, py)),
+  );
+}
+
 /** Fill in geometry that effects and the renderer share. */
 export function finish(layout) {
-  const keys = layout.keys;
-  let W = 0,
-    H = 0;
-  for (const key of keys) {
-    W = Math.max(W, key.x + key.w);
-    H = Math.max(H, key.y + key.h);
-  }
-  const CX = W / 2,
-    CY = H / 2;
+  const keys = layout.keys,
+    points = keys.flatMap(keyPoints),
+    minX = points.length ? Math.min(...points.map((p) => p.x)) : 0,
+    maxX = points.length ? Math.max(...points.map((p) => p.x)) : 0,
+    minY = points.length ? Math.min(...points.map((p) => p.y)) : 0,
+    maxY = points.length ? Math.max(...points.map((p) => p.y)) : 0,
+    W = maxX - minX,
+    H = maxY - minY,
+    CX = (minX + maxX) / 2,
+    CY = (minY + maxY) / 2;
   keys.forEach((key, i) => {
+    const shape = keyPoints(key),
+      left = Math.min(...shape.map((p) => p.x)),
+      right = Math.max(...shape.map((p) => p.x)),
+      top = Math.min(...shape.map((p) => p.y)),
+      bottom = Math.max(...shape.map((p) => p.y));
     key.i = i;
-    key.cx = key.x + key.w / 2;
-    key.cy = key.y + key.h / 2;
-    key.nx = key.cx / W;
-    key.ny = key.cy / H;
+    key.cx = (left + right) / 2;
+    key.cy = (top + bottom) / 2;
+    key.nx = W ? (key.cx - minX) / W : 0.5;
+    key.ny = H ? (key.cy - minY) / H : 0.5;
     key.ang = Math.atan2(key.cy - CY, key.cx - CX);
     key.dist = Math.hypot(key.cx - CX, key.cy - CY);
   });
@@ -383,10 +420,26 @@ export function finish(layout) {
   return layout;
 }
 
-const cache = {};
+/** Return the frontmost key at a point in layout coordinates, including its secondary shape. */
+export function keyAtPoint(layout, x, y) {
+  for (let i = layout.keys.length - 1; i >= 0; i--) {
+    const key = layout.keys[i];
+    const p = rotatedPoint({ ...key, r: -(key.r || 0) }, x, y);
+    if (
+      keyRectangles(key).some(
+        (rect) => p.x >= rect.x && p.x < rect.x + rect.w && p.y >= rect.y && p.y < rect.y + rect.h,
+      )
+    )
+      return key.i;
+  }
+  return -1;
+}
+
+const cache = new Map();
 
 export function presetLayout(id) {
-  if (cache[id]) return cache[id];
+  if (!Object.prototype.hasOwnProperty.call(LAYOUT_DEFS, id)) id = "100";
+  if (cache.has(id)) return cache.get(id);
   const def = LAYOUT_DEFS[id];
   const keys = [];
   def.rows.forEach(([y, items], row) => {
@@ -401,30 +454,43 @@ export function presetLayout(id) {
       x += w;
     }
   });
-  return (cache[id] = finish({ id, name: def.name, exact: false, keys }));
+  const layout = finish({ id, name: def.name, exact: false, keys });
+  cache.set(id, layout);
+  return layout;
 }
 
 /** A layout from matrix-addressed key shapes (VIA definition, Keychron Launcher). */
 export function exactLayout(id, name, shapes) {
   const keys = shapes
     .filter((s) => s.row >= 0 && s.col >= 0)
-    .map((s) => ({
-      label: "",
-      code: null,
-      sub: null,
-      x: s.x,
-      y: s.y,
-      w: s.w || 1,
-      h: s.h || 1,
-      row: Math.round(s.y),
-      mrow: s.row,
-      mcol: s.col,
-    }));
-  const minX = Math.min(...keys.map((k) => k.x)),
-    minY = Math.min(...keys.map((k) => k.y));
+    .map((s) => {
+      const key = {
+        label: "",
+        code: null,
+        sub: null,
+        x: s.x,
+        y: s.y,
+        w: s.w || 1,
+        h: s.h || 1,
+        r: s.r || 0,
+        rx: s.rx || 0,
+        ry: s.ry || 0,
+        row: Math.round(s.y),
+        mrow: s.row,
+        mcol: s.col,
+      };
+      if ([s.x2, s.y2, s.w2, s.h2].some((v) => v != null))
+        Object.assign(key, { x2: s.x2 ?? 0, y2: s.y2 ?? 0, w2: s.w2 ?? key.w, h2: s.h2 ?? key.h });
+      return key;
+    });
+  const points = keys.flatMap(keyPoints),
+    minX = points.length ? Math.min(...points.map((p) => p.x)) : 0,
+    minY = points.length ? Math.min(...points.map((p) => p.y)) : 0;
   for (const key of keys) {
     key.x -= minX;
     key.y -= minY;
+    key.rx -= minX;
+    key.ry -= minY;
   }
   return finish({ id, name, exact: true, keys });
 }

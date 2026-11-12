@@ -12,6 +12,35 @@ const norm = (s) =>
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "");
 
+/** Decode a compact database layout, including optional KLE geometry extensions. */
+export function decodeDbLayout(layout) {
+  return layout.map((k) => {
+    const geometry = Array.isArray(k[k.length - 1]) ? k[k.length - 1] : null,
+      end = geometry ? k.length - 1 : k.length,
+      label = typeof k[end - 1] === "string" ? k[end - 1] : undefined,
+      key = {
+        row: k[0],
+        col: k[1],
+        x: k[2] / 8,
+        y: k[3] / 8,
+        w: Number.isFinite(k[4]) ? k[4] / 8 : 1,
+        h: Number.isFinite(k[5]) ? k[5] / 8 : 1,
+        label,
+        r: geometry?.[0] || 0,
+        rx: geometry ? geometry[1] / 8 : 0,
+        ry: geometry ? geometry[2] / 8 : 0,
+      };
+    if (geometry?.[3])
+      Object.assign(key, {
+        x2: geometry[4] / 8,
+        y2: geometry[5] / 8,
+        w2: geometry[6] / 8,
+        h2: geometry[7] / 8,
+      });
+    return key;
+  });
+}
+
 export function keyboardDb() {
   if (!ready)
     ready = (async () => {
@@ -52,15 +81,7 @@ export function keyboardDb() {
           cols,
           extra: ex != null ? raw.extras[ex] : null,
           get keys() {
-            return raw.layouts[li].map(([row, col, x, y, w = 8, h = 8, label]) => ({
-              row,
-              col,
-              x: x / 8,
-              y: y / 8,
-              w: w / 8,
-              h: h / 8,
-              label,
-            }));
+            return decodeDbLayout(raw.layouts[li]);
           },
           get keyCount() {
             return raw.layouts[li].length;
@@ -174,7 +195,21 @@ export function servedDefinition(e) {
     vendorProductId: e.vid * 65536 + e.pid,
     matrix: { rows: e.rows, cols: e.cols },
     layouts: {
-      keys: e.keys.map(({ row, col, x, y, w, h }) => ({ row, col, x, y, w, h })),
+      keys: e.keys.map(({ row, col, x, y, w, h, r, rx, ry, x2, y2, w2, h2 }) => ({
+        row,
+        col,
+        x,
+        y,
+        w,
+        h,
+        r,
+        rx,
+        ry,
+        x2,
+        y2,
+        w2,
+        h2,
+      })),
       labels: [],
     },
     keycodes: ex.k || [],
