@@ -15,6 +15,7 @@ import { keyboardDb, servedDefinition } from "./kbdb.js";
 import { SONIX_FILTERS, sonixClient, sonixFamilyOf } from "./drivers/sonix.js";
 import xz from "xz-decompress";
 import { hsv } from "./effects.js";
+import { transport } from "./hid/transport.js";
 
 export const hex4 = (n) => "0x" + (n >>> 0).toString(16).toUpperCase().padStart(4, "0");
 
@@ -38,15 +39,9 @@ const store = {
 
 export { store };
 
+/** "ok", "missing" (no HID in this browser) or "blocked" (by permissions policy). */
 export function hidSupport() {
-  if (!("hid" in navigator)) return "missing";
-  try {
-    const fp = document.permissionsPolicy || document.featurePolicy;
-    if (fp && fp.allowsFeature && !fp.allowsFeature("hid")) return "blocked";
-  } catch {
-    /* ignore */
-  }
-  return "ok";
+  return transport().support();
 }
 
 const VIA_FILTER = { usagePage: 0xff60, usage: 0x61 };
@@ -63,15 +58,18 @@ const ANY_KEYBOARD = [
 ];
 
 export async function pickKeyboards(any) {
-  return navigator.hid.requestDevice({
-    filters: any ? [] : [...SUPPORTED_HID_FILTERS, ...SONIX_FILTERS, ...ANY_KEYBOARD],
-  });
+  return transport().request(
+    any ? [] : [...SUPPORTED_HID_FILTERS, ...SONIX_FILTERS, ...ANY_KEYBOARD],
+  );
 }
 
 export async function grantedKeyboards() {
   if (hidSupport() !== "ok") return [];
-  return navigator.hid.getDevices();
+  return transport().granted();
 }
+
+/** Calls fn(device) when an allowed keyboard is plugged in or unplugged. Returns an unsubscribe. */
+export const onHidEvent = (type, fn) => transport().on(type, fn);
 
 /** Remove repeated references to the same WebHID handle without guessing physical identity. */
 export function distinctHidHandles(list) {
