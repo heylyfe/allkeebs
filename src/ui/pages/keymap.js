@@ -17,7 +17,7 @@ export function keymapState(i) {
       : keymapEdit.layers[keymapEdit.layer]?.[i];
   const d = code == null ? { label: "" } : kb.keymap.describe(code);
   return {
-    label: d.label === "" ? "" : d.label,
+    label: code === 0 ? "" : d.label,
     sub: null,
     selected: keymapEdit.sel === i,
     changed: keymapEdit.edits.has(key),
@@ -34,6 +34,7 @@ export async function tabKeymap(el, kb) {
       group: "letters",
       q: "",
       edits: new Map(),
+      error: null,
     };
   const keymapEdit = state.keymapEdit;
   const layerButtons = Array.from({ length: kb.keymap.layers }, (_, l) => {
@@ -69,10 +70,12 @@ export async function tabKeymap(el, kb) {
   renderKeymapPanel();
   if (!keymapEdit.layers) {
     try {
-      keymapEdit.layers = kb.keymapCache && !kb.demo ? kb.keymapCache : await kb.keymap.read();
+      const layers = kb.keymapCache && !kb.demo ? kb.keymapCache : await kb.keymap.read();
+      if (!layers?.length) throw new Error("The keyboard returned an empty keymap");
+      keymapEdit.layers = layers;
     } catch (e) {
       toast("Couldn’t read the keymap. " + e.message, "bad");
-      keymapEdit.layers = [];
+      keymapEdit.error = e?.message || "Unknown error";
     }
     renderKeymapPanel();
     markDirty();
@@ -85,6 +88,14 @@ export function renderKeymapPanel() {
   const keymapEdit = state.keymapEdit,
     kb = state.cur,
     layout = hero.layout;
+  if (keymapEdit.error) {
+    el.innerHTML = `<h2>Key</h2><p class="sub">Couldn’t read the keymap: ${esc(keymapEdit.error)}</p><button class="btn sm" id="kmRetry">Retry</button>`;
+    $("#kmRetry").onclick = () => {
+      keymapEdit.error = null;
+      tabKeymap($("#tab"), kb);
+    };
+    return;
+  }
   if (!keymapEdit.layers) {
     el.innerHTML = `<h2>Key</h2><p class="sub">Reading the keymap from the keyboard</p>`;
     return;
@@ -99,7 +110,7 @@ export function renderKeymapPanel() {
     key = `${keymapEdit.layer}:${keymapEdit.sel}`,
     cur = keymapEdit.edits.has(key)
       ? keymapEdit.edits.get(key)
-      : keymapEdit.layers[keymapEdit.layer][keymapEdit.sel],
+      : keymapEdit.layers[keymapEdit.layer]?.[keymapEdit.sel],
     d = kb.keymap.describe(cur);
   const groups = kb.keymap.picker.filter((g) => g.keycodes.length);
   if (!groups.some((g) => g.id === keymapEdit.group)) keymapEdit.group = groups[0]?.id;
@@ -195,7 +206,7 @@ export function renderKeymapPanel() {
     (b) =>
       (b.onclick = () => {
         const code = +b.dataset.code;
-        if (code === keymapEdit.layers[keymapEdit.layer][keymapEdit.sel])
+        if (code === keymapEdit.layers[keymapEdit.layer]?.[keymapEdit.sel])
           keymapEdit.edits.delete(key);
         else keymapEdit.edits.set(key, code);
         queueKeymap();

@@ -175,14 +175,23 @@ export function pageKeyTest(page) {
 }
 
 let matrixTimer = null;
+let matrixGeneration = 0;
 
 function startMatrix() {
   const kb = state.cur;
   if (!kb?.matrix) return;
+  if (hero.layout !== kb.exactLayout) {
+    const checkbox = $("#ktMatrix");
+    if (checkbox) checkbox.checked = false;
+    toast("Select Auto layout to read the switch matrix", "bad");
+    return;
+  }
   stopMatrix();
+  const generation = matrixGeneration;
   const tick = async () => {
     try {
       const on = await kb.matrix.read();
+      if (generation !== matrixGeneration) return;
       for (const i of on)
         if (!state.keyTest.mdown.has(i)) {
           state.keyTest.tested.add(i);
@@ -193,6 +202,7 @@ function startMatrix() {
       markDirty();
       renderKeyTestStats();
     } catch (e) {
+      if (generation !== matrixGeneration) return;
       log("Matrix: " + e.message);
       stopMatrix();
       toast("Stopped reading the matrix. " + e.message, "bad");
@@ -204,6 +214,7 @@ function startMatrix() {
 }
 
 export function stopMatrix() {
+  matrixGeneration++;
   clearTimeout(matrixTimer);
   matrixTimer = null;
   if (state.keyTest) state.keyTest.mdown = new Set();
@@ -213,7 +224,10 @@ const inKeyTest = () =>
   state.route === "key-test" || (state.route === "device" && state.tab === "keytest");
 
 function handleKey(e, down) {
-  if (recording) return recordKey(e, down);
+  if (recording) {
+    if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName) || e.target.isContentEditable) return;
+    return recordKey(e, down);
+  }
   if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName) && !inKeyTest()) return;
   const t = performance.now() / 1000,
     layout = state.route === "key-test" ? keyTestView?.layout : hero?.layout;

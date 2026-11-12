@@ -73,17 +73,9 @@ export async function grantedKeyboards() {
   return navigator.hid.getDevices();
 }
 
-/** One HIDDevice per physical keyboard: the interface a driver understands, else any interface. */
-export function onePerKeyboard(list) {
-  const groups = new Map();
-  for (const d of list) {
-    const k = d.vendorId + ":" + d.productId + ":" + d.productName;
-    (groups.get(k) || groups.set(k, []).get(k)).push(d);
-  }
-  // Prefer the interface a driver can talk to over the plain typing interface.
-  return [...groups.values()].map(
-    (g) => g.find((d) => sonixFamilyOf(d)) || g.find((d) => createSupportedClient(d)) || g[0],
-  );
+/** Remove repeated references to the same WebHID handle without guessing physical identity. */
+export function distinctHidHandles(list) {
+  return [...new Set(list)];
 }
 
 // VIA built-in menus (VIA app names these instead of spelling them out)
@@ -764,6 +756,17 @@ function razerAdapter(device, client, status) {
   return kb;
 }
 
+export async function turnOffLogitechLighting(client, L) {
+  // `illumination` reports the advertised 0x8040 capability; `illuminationEnabled`
+  // is its current state. setIllumination verifies its own read-back.
+  if (L.brightness?.illumination) return client.setIllumination(false);
+  if (L.lighting?.rgbZones?.length) return client.setRgbEffect("Off");
+  // 0x8081 supports writing a volatile solid colour to every advertised zone.
+  // Black turns these solid-only zones off without persisting a new device state.
+  if (L.lighting?.zones?.length) return client.setSolidColor(0, 0, 0);
+  throw new Error("This Logitech keyboard did not report a supported lighting-off command.");
+}
+
 function logitechAdapter(device, client, status) {
   const kb = base(device, client, status),
     L = status.logitech || {};
@@ -792,8 +795,7 @@ function logitechAdapter(device, client, status) {
         } else await client.setRgbEffect(fw.value, { red, green, blue });
       },
       async off() {
-        if (br?.illumination) await client.setIllumination(false);
-        else if (zones) await client.setRgbEffect("Off");
+        await turnOffLogitechLighting(client, L);
       },
     };
   } else kb.notes.push("This Logitech keyboard didn't report lighting the driver can change.");

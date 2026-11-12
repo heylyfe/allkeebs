@@ -140,6 +140,9 @@ function renderLayoutRow() {
   $$("[data-l]", el).forEach(
     (b) =>
       (b.onclick = () => {
+        stopMatrix();
+        const matrixSwitch = $("#ktMatrix");
+        if (matrixSwitch) matrixSwitch.checked = false;
         store.set("layout." + kb.key, b.dataset.l);
         hero.setLayout(heroLayout());
         renderLayoutRow();

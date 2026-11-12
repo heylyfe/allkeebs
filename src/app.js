@@ -2,7 +2,7 @@
 // This file just starts the app; the pieces live in ui/.
 
 import "./styles.css";
-import { grantedKeyboards, hidSupport, onePerKeyboard } from "./devices.js";
+import { distinctHidHandles, grantedKeyboards, hidSupport } from "./devices.js";
 import { drawAscii } from "./ui/ascii.js";
 import { adopt } from "./ui/connect.js";
 import { toast } from "./ui/dom.js";
@@ -41,7 +41,7 @@ function boot() {
     navigator.hid.addEventListener("connect", (e) => adopt(e.device, false));
     grantedKeyboards()
       .then(async (list) => {
-        for (const d of onePerKeyboard(list)) await adopt(d, false);
+        for (const d of distinctHidHandles(list)) await adopt(d, false);
         if (!list.length) render();
       })
       .catch(() => {});

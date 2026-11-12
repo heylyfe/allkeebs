@@ -2,7 +2,7 @@
 
 import { $, $$, VERSION, activityLog, esc, icons, sandboxed, toast } from "../dom.js";
 import { applyTheme, render } from "../shell.js";
-import { loadProfiles, savePrefs, state } from "../state.js";
+import { reloadStoredState, savePrefs, state } from "../state.js";
 
 const THEMES = [
   ["dark", "Dark"],
@@ -108,20 +108,44 @@ export function pagePrefs(page) {
     link.click();
     setTimeout(() => URL.revokeObjectURL(link.href), 2000);
   };
-  $("#pfImport").onchange = (e) => {
+  const refreshStoredState = () => {
+    reloadStoredState();
+    applyTheme();
+    render();
+  };
+  $("#pfImport").onchange = async (e) => {
     const f = e.target.files[0];
     if (!f) return;
-    f.text().then((t) => {
-      try {
-        const d = JSON.parse(t);
-        if (d.app !== "allkeebs") throw 0;
-        for (const [k, v] of Object.entries(d.data)) localStorage.setItem(k, v);
-        loadProfiles();
-        toast("Backup restored");
-      } catch {
-        toast("That isn’t an allkeebs backup", "bad");
+    let entries;
+    try {
+      const d = JSON.parse(await f.text());
+      if (d.app !== "allkeebs" || !d.data || typeof d.data !== "object" || Array.isArray(d.data))
+        throw 0;
+      entries = Object.entries(d.data);
+      if (entries.some(([k, v]) => !k.startsWith("allkeebs.") || typeof v !== "string")) throw 0;
+    } catch {
+      toast("That isn’t an allkeebs backup", "bad");
+      return;
+    }
+    const previous = new Map();
+    try {
+      for (const [k, v] of entries) {
+        previous.set(k, localStorage.getItem(k));
+        localStorage.setItem(k, v);
       }
-    });
+    } catch {
+      for (const [k, v] of previous) {
+        try {
+          v === null ? localStorage.removeItem(k) : localStorage.setItem(k, v);
+        } catch {
+          /* best effort */
+        }
+      }
+      toast("Couldn’t restore the backup", "bad");
+      return;
+    }
+    refreshStoredState();
+    toast("Backup restored");
   };
   $("#pfReset").onclick = () => {
     const keep = {};
@@ -136,13 +160,12 @@ export function pagePrefs(page) {
     } catch {
       /* ignore */
     }
-    loadProfiles();
-    state.profileId = "monsoon";
+    refreshStoredState();
     toast("allkeebs is reset", "", {
       label: "Undo",
       fn: () => {
         for (const [k, v] of Object.entries(keep)) localStorage.setItem(k, v);
-        loadProfiles();
+        refreshStoredState();
       },
     });
   };

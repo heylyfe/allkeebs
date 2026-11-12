@@ -2,9 +2,9 @@
 
 import {
   EVENT_FROM_VIA as eventCodeFor,
+  distinctHidHandles,
   demoAdapter,
   hidSupport,
-  onePerKeyboard,
   openKeyboard,
   pickKeyboards,
 } from "../devices.js";
@@ -12,7 +12,7 @@ import { log, toast } from "./dom.js";
 import { layoutFor } from "./layout-choice.js";
 import { markDirty } from "./loop.js";
 import { refreshCurrentTab } from "./pages/device.js";
-import { go, renderSide } from "./shell.js";
+import { go, render, renderSide } from "./shell.js";
 import { state } from "./state.js";
 
 export async function connect(any) {
@@ -33,22 +33,24 @@ export async function connect(any) {
     log("Picker: " + e.message);
     return;
   }
-  for (const d of onePerKeyboard(list)) await adopt(d, true);
+  for (const d of distinctHidHandles(list)) await adopt(d, true);
 }
 
 export async function adopt(device, announce) {
-  if (
-    state.devices.some(
-      (kb) =>
-        kb.device === device ||
-        (kb.vid === device.vendorId &&
-          kb.pid === device.productId &&
-          kb.device?.productName === device.productName),
-    )
-  )
-    return;
+  if (state.devices.some((kb) => kb.device === device)) return;
   try {
     const kb = await openKeyboard(device, log);
+    if (
+      state.devices.some(
+        (other) =>
+          other.vid === device.vendorId &&
+          other.pid === device.productId &&
+          other.device?.productName === device.productName,
+      )
+    )
+      kb.notes.push(
+        "Another WebHID entry has the same reported identity. The browser does not expose a serial number or physical-device path here, so these entries may be separate identical keyboards or interfaces of one keyboard.",
+      );
     state.devices.push(kb);
     if (announce)
       toast(
@@ -56,7 +58,9 @@ export async function adopt(device, announce) {
           ? `${kb.name} recognised. Its layout and key test are ready`
           : `${kb.name} connected through the ${kb.brand} driver`,
       );
-    openDevice(kb);
+    if (announce) openDevice(kb);
+    else if (state.route === "keyboards") render();
+    else renderSide();
     loadKeymapLabels(kb);
   } catch (e) {
     log(`Open failed for ${device.productName}: ${e.message}`);
@@ -111,7 +115,7 @@ export async function loadKeymapLabels(kb) {
     kb.exactLayout.keys.forEach((k, i) => {
       const code = layers[0][i];
       const d = kb.keymap.describe(code);
-      k.label = d.label;
+      k.label = code === 0 ? "" : d.label;
       k.code = eventCodeFor(code);
       k.sub = null;
     });

@@ -39,6 +39,7 @@ const E = (v) => Math.round(v * 8); // eighth-unit integers
 function kle(rows) {
   const keys = [];
   let y = 0,
+    r = 0,
     rx = 0,
     ry = 0;
   for (const row of rows || []) {
@@ -46,9 +47,14 @@ function kle(rows) {
     let x = rx,
       w = 1,
       h = 1,
+      x2,
+      y2,
+      w2,
+      h2,
       decal = false;
     for (const it of row) {
       if (it && typeof it === "object") {
+        if (it.r != null) r = it.r;
         if (it.rx != null) {
           rx = it.rx;
           x = rx;
@@ -61,6 +67,10 @@ function kle(rows) {
         if (it.y != null) y += it.y;
         if (it.w != null) w = it.w;
         if (it.h != null) h = it.h;
+        if (it.x2 != null) x2 = it.x2;
+        if (it.y2 != null) y2 = it.y2;
+        if (it.w2 != null) w2 = it.w2;
+        if (it.h2 != null) h2 = it.h2;
         if (it.d) decal = true;
         continue;
       }
@@ -72,10 +82,16 @@ function kle(rows) {
         const o = (labels[q] || "").match(/^\s*(\d+)\s*,\s*(\d+)\s*$/);
         if (o) opt = [+o[1], +o[2]];
       }
-      if (m && !decal && (!opt || opt[1] === 0)) keys.push({ r: +m[1], c: +m[2], x, y, w, h });
+      if (m && !decal && (!opt || opt[1] === 0)) {
+        const key = { r: +m[1], c: +m[2], x, y, w, h, rot: r, rx, ry };
+        if ([x2, y2, w2, h2].some((v) => v != null))
+          Object.assign(key, { x2: x2 ?? 0, y2: y2 ?? 0, w2: w2 ?? w, h2: h2 ?? h });
+        keys.push(key);
+      }
       x += w;
       w = 1;
       h = 1;
+      x2 = y2 = w2 = h2 = undefined;
       decal = false;
     }
     y += 1;
@@ -156,6 +172,13 @@ function scanQmk(root, into) {
         y: k.y || 0,
         w: k.w || 1,
         h: k.h || 1,
+        rot: k.r || 0,
+        rx: k.rx || 0,
+        ry: k.ry || 0,
+        x2: k.x2,
+        y2: k.y2,
+        w2: k.w2,
+        h2: k.h2,
         l: typeof k.label === "string" ? k.label : undefined,
       }));
     if (!keys.length) continue;
@@ -241,6 +264,17 @@ const enc = (keys) => {
     if (k.w !== 1 || k.h !== 1 || k.l) a.push(E(k.w));
     if (k.h !== 1 || k.l) a.push(E(k.h));
     if (k.l) a.push(k.l);
+    if (k.rot || k.rx || k.ry || [k.x2, k.y2, k.w2, k.h2].some((v) => v != null))
+      a.push([
+        k.rot || 0,
+        E((k.rx || 0) - minX),
+        E((k.ry || 0) - minY),
+        [k.x2, k.y2, k.w2, k.h2].some((v) => v != null) ? 1 : 0,
+        E(k.x2 || 0),
+        E(k.y2 || 0),
+        E(k.w2 || k.w || 1),
+        E(k.h2 || k.h || 1),
+      ]);
     return a;
   });
 };

@@ -15,7 +15,7 @@ globalThis.localStorage = (() => {
 globalThis.fetch = async () => {
   throw new Error("offline");
 };
-import { onePerKeyboard, openKeyboard } from "../src/devices.js";
+import { distinctHidHandles, openKeyboard } from "../src/devices.js";
 
 function fake(vid, pid, name, usagePage) {
   const listeners = new Set();
@@ -56,10 +56,14 @@ const check = (label, ok) => {
 };
 
 (async () => {
-  // The typing interface and the lighting interface of one board: the lighting one must win.
+  // Keep distinct WebHID interfaces so driver selection can inspect each handle.
   const typing = fake(0x320f, 0x5064, "Gaming Keyboard", 0x01);
   const lighting = fake(0x320f, 0x5064, "Gaming Keyboard", 0xff1c);
-  check("picks the lighting interface", onePerKeyboard([typing, lighting])[0] === lighting);
+  const handles = distinctHidHandles([typing, lighting, typing]);
+  check(
+    "keeps distinct interfaces and drops repeated handles",
+    handles.length === 2 && handles[1] === lighting,
+  );
 
   const ev = await openKeyboard(lighting);
   check(

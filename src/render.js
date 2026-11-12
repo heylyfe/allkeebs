@@ -1,4 +1,6 @@
 // Draws a keyboard on a canvas: case, keycaps, legends, and either LED light or key states.
+import { keyAtPoint, keyRectangles } from "./layouts.js";
+
 const PAD = 0.45;
 
 function roundRect(c, x, y, w, h, r) {
@@ -14,6 +16,97 @@ function roundRect(c, x, y, w, h, r) {
 
 const newCanvas = () => document.createElement("canvas");
 let ACCENT = [125, 147, 255];
+
+function withKey(ctx, key, u, draw) {
+  const rx = key.rx || 0,
+    ry = key.ry || 0;
+  ctx.save();
+  ctx.translate((PAD + rx) * u, (PAD + ry) * u);
+  if (key.r) ctx.rotate((key.r * Math.PI) / 180);
+  const rects = keyRectangles(key).map((r) => ({
+    x: (r.x - rx) * u,
+    y: (r.y - ry) * u,
+    w: r.w * u,
+    h: r.h * u,
+  }));
+  draw(rects, rectBounds(rects));
+  ctx.restore();
+}
+
+function rectBounds(rects) {
+  return {
+    x: Math.min(...rects.map((r) => r.x)),
+    y: Math.min(...rects.map((r) => r.y)),
+    w: Math.max(...rects.map((r) => r.x + r.w)) - Math.min(...rects.map((r) => r.x)),
+    h: Math.max(...rects.map((r) => r.y + r.h)) - Math.min(...rects.map((r) => r.y)),
+  };
+}
+
+function insetRects(rects, left, top = left, right = left, bottom = top) {
+  return rects
+    .map((r) => ({ x: r.x + left, y: r.y + top, w: r.w - left - right, h: r.h - top - bottom }))
+    .filter((r) => r.w > 0 && r.h > 0);
+}
+
+function boundarySegments(rects) {
+  const edges = rects.flatMap((r, i) => [
+    { x1: r.x, y1: r.y, x2: r.x + r.w, y2: r.y, i },
+    { x1: r.x + r.w, y1: r.y, x2: r.x + r.w, y2: r.y + r.h, i },
+    { x1: r.x + r.w, y1: r.y + r.h, x2: r.x, y2: r.y + r.h, i },
+    { x1: r.x, y1: r.y + r.h, x2: r.x, y2: r.y, i },
+  ]);
+  const out = [];
+  for (const edge of edges) {
+    const horizontal = edge.y1 === edge.y2,
+      start = horizontal ? Math.min(edge.x1, edge.x2) : Math.min(edge.y1, edge.y2),
+      end = horizontal ? Math.max(edge.x1, edge.x2) : Math.max(edge.y1, edge.y2),
+      cuts = [start, end];
+    for (let j = 0; j < rects.length; j++) {
+      if (j === edge.i) continue;
+      const r = rects[j];
+      for (const v of horizontal ? [r.x, r.x + r.w] : [r.y, r.y + r.h])
+        if (v > start && v < end) cuts.push(v);
+    }
+    cuts.sort((a, b) => a - b);
+    for (let j = 0; j < cuts.length - 1; j++) {
+      const a = cuts[j],
+        b = cuts[j + 1],
+        mid = (a + b) / 2,
+        mx = horizontal ? mid : edge.x1,
+        my = horizontal ? edge.y1 : mid,
+        covered = rects.some(
+          (r, k) =>
+            k !== edge.i &&
+            mx >= r.x - 1e-9 &&
+            mx <= r.x + r.w + 1e-9 &&
+            my >= r.y - 1e-9 &&
+            my <= r.y + r.h + 1e-9,
+        );
+      if (covered) continue;
+      out.push(horizontal ? [a, edge.y1, b, edge.y1] : [edge.x1, a, edge.x1, b]);
+    }
+  }
+  return out;
+}
+
+function strokeBoundary(ctx, rects) {
+  ctx.beginPath();
+  for (const [x1, y1, x2, y2] of boundarySegments(rects)) {
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+  }
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.stroke();
+}
+
+function fillRects(ctx, rects, radius, fillStyle) {
+  ctx.fillStyle = fillStyle;
+  for (const r of rects) {
+    roundRect(ctx, r.x, r.y, r.w, r.h, radius);
+    ctx.fill();
+  }
+}
 
 /** Re-read the accent after a theme change; drawing uses the cached value. */
 export function refreshAccent() {
@@ -58,15 +151,7 @@ export class KeyboardView {
     if (!u || !this.layout) return -1;
     const x = (e.clientX - r.left) / u - PAD,
       y = (e.clientY - r.top) / u - PAD;
-    const key = this.layout.keys.find(
-      (k) => x >= k.x && x < k.x + k.w && y >= k.y && y < k.y + k.h,
-    );
-    return key ? key.i : -1;
-  }
-  rect(k) {
-    const u = this.size.u,
-      g = u * (this.mini ? 0.07 : 0.055);
-    return [(PAD + k.x) * u + g, (PAD + k.y) * u + g, k.w * u - 2 * g, k.h * u - 2 * g];
+    return keyAtPoint(this.layout, x, y);
   }
   resize() {
     const layout = this.layout;
@@ -119,26 +204,33 @@ export class KeyboardView {
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
     c.clearRect(0, 0, cw, ch);
     for (const k of layout.keys) {
-      const [x, y, w, h] = this.rect(k);
-      gr = c.createLinearGradient(0, y, 0, y + h);
-      gr.addColorStop(0, "#2c3139");
-      gr.addColorStop(1, "#16191e");
-      roundRect(c, x, y, w, h, u * 0.11);
-      c.fillStyle = gr;
-      c.fill();
-      if (this.mini) continue;
-      c.strokeStyle = "rgba(0,0,0,.55)";
-      c.lineWidth = 1;
-      c.stroke();
-      const ti = u * 0.1;
-      gr = c.createLinearGradient(0, y, 0, y + h);
-      gr.addColorStop(0, "#383e49");
-      gr.addColorStop(1, "#292e37");
-      roundRect(c, x + ti, y + ti * 0.45, w - ti * 2, h - ti * 1.75, u * 0.08);
-      c.fillStyle = gr;
-      c.fill();
-      c.strokeStyle = "rgba(255,255,255,.05)";
-      c.stroke();
+      withKey(c, k, u, (raw, box) => {
+        const g = u * (this.mini ? 0.07 : 0.055),
+          outer = insetRects(raw, g),
+          bounds = rectBounds(outer);
+        gr = c.createLinearGradient(bounds.x, bounds.y, bounds.x, bounds.y + bounds.h);
+        gr.addColorStop(0, "#2c3139");
+        gr.addColorStop(1, "#16191e");
+        fillRects(c, outer, u * 0.11, gr);
+        if (this.mini) return;
+        c.strokeStyle = "rgba(0,0,0,.55)";
+        c.lineWidth = 1;
+        strokeBoundary(c, outer);
+        const ti = u * 0.1,
+          inner = insetRects(outer, ti, ti * 0.45, ti, ti * 1.75),
+          innerBounds = rectBounds(inner);
+        gr = c.createLinearGradient(
+          innerBounds.x,
+          innerBounds.y,
+          innerBounds.x,
+          innerBounds.y + innerBounds.h,
+        );
+        gr.addColorStop(0, "#383e49");
+        gr.addColorStop(1, "#292e37");
+        fillRects(c, inner, u * 0.08, gr);
+        c.strokeStyle = "rgba(255,255,255,.05)";
+        strokeBoundary(c, inner);
+      });
     }
   }
   /**
@@ -164,9 +256,11 @@ export class KeyboardView {
         c.fillRect(0, 0, cw, ch);
         for (const k of layout.keys) {
           const j = k.i * 3,
-            [x, y, w, h] = this.rect(k);
-          c.fillStyle = `rgb(${(cols[j] * 255) | 0},${(cols[j + 1] * 255) | 0},${(cols[j + 2] * 255) | 0})`;
-          c.fillRect(x + u * 0.04, y + u * 0.04, w - u * 0.08, h - u * 0.08);
+            color = `rgb(${(cols[j] * 255) | 0},${(cols[j + 1] * 255) | 0},${(cols[j + 2] * 255) | 0})`;
+          withKey(c, k, u, (raw) => {
+            c.fillStyle = color;
+            for (const r of insetRects(raw, u * 0.04)) c.fillRect(r.x, r.y, r.w, r.h);
+          });
         }
       }
       ctx.save();
@@ -193,7 +287,6 @@ export class KeyboardView {
     const A = state ? accentRgb() : null,
       family = "DM Sans, system-ui, sans-serif";
     for (const k of layout.keys) {
-      const [x, y, w, h] = this.rect(k);
       const status = state ? state(k.i) : null;
       let r = 0,
         g = 0,
@@ -209,68 +302,68 @@ export class KeyboardView {
       if (cols && L > 0.02) {
         ctx.globalCompositeOperation = "lighter";
         ctx.fillStyle = `rgba(${(r * 255) | 0},${(g * 255) | 0},${(b * 255) | 0},${this.mini ? 0.5 : 0.16})`;
-        roundRect(ctx, x, y, w, h, u * 0.11);
-        ctx.fill();
+        withKey(ctx, k, u, (rects) => fillRects(ctx, rects, u * 0.11, ctx.fillStyle));
         ctx.globalCompositeOperation = "source-over";
       }
       if (status) {
         const [ar, ag, ab] = A;
         if (status.tested && !status.on) {
           ctx.fillStyle = `rgba(${ar},${ag},${ab},.16)`;
-          roundRect(ctx, x, y, w, h, u * 0.11);
-          ctx.fill();
+          withKey(ctx, k, u, (rects) => fillRects(ctx, rects, u * 0.11, ctx.fillStyle));
         }
         if (status.on) {
           ctx.fillStyle = `rgba(${ar},${ag},${ab},.85)`;
-          roundRect(ctx, x, y, w, h, u * 0.11);
-          ctx.fill();
+          withKey(ctx, k, u, (rects) => fillRects(ctx, rects, u * 0.11, ctx.fillStyle));
         }
         if (status.changed) {
           ctx.fillStyle = `rgba(${ar},${ag},${ab},.22)`;
-          roundRect(ctx, x, y, w, h, u * 0.11);
-          ctx.fill();
+          withKey(ctx, k, u, (rects) => fillRects(ctx, rects, u * 0.11, ctx.fillStyle));
         }
         if (status.selected) {
           ctx.strokeStyle = `rgb(${ar},${ag},${ab})`;
           ctx.lineWidth = 2;
-          roundRect(ctx, x - 1, y - 1, w + 2, h + 2, u * 0.13);
-          ctx.stroke();
+          withKey(ctx, k, u, (rects) => strokeBoundary(ctx, insetRects(rects, -1)));
         }
         if (status.dim) {
           ctx.fillStyle = "rgba(0,0,0,.45)";
-          roundRect(ctx, x, y, w, h, u * 0.11);
-          ctx.fill();
+          withKey(ctx, k, u, (rects) => fillRects(ctx, rects, u * 0.11, ctx.fillStyle));
         }
       }
       if (this.mini) continue;
       const label = status && status.label != null ? status.label : k.label,
         sub = status && status.label != null ? status.sub : k.sub;
       if (!label && !sub) continue;
-      if (status && status.on) ctx.fillStyle = "#0a1030";
-      else if (cols) {
-        // Legends start grey and take on the key's colour as it gets brighter.
-        const tint = (grey, c) => Math.round(grey + (120 + c * 135 - grey) * L);
-        ctx.fillStyle = `rgb(${tint(98, r)},${tint(104, g)},${tint(116, b)})`;
-      } else ctx.fillStyle = status && status.changed ? "#eef0f2" : "#a3aab4";
-      if (cols && L > 0.15) {
-        ctx.shadowColor = `rgba(${(r * 255) | 0},${(g * 255) | 0},${(b * 255) | 0},${0.9 * L})`;
-        ctx.shadowBlur = u * 0.2;
-      } else ctx.shadowBlur = 0;
-      const fit = (text, size) => {
-        ctx.font = `500 ${size}px ${family}`;
-        const mw = w - u * 0.18;
-        const tw = ctx.measureText(text).width;
-        if (tw > mw) ctx.font = `500 ${Math.max(6, (size * mw) / tw)}px ${family}`;
-      };
-      if (sub) {
-        fit(sub, u * 0.19);
-        ctx.fillText(sub, x + w / 2, y + h * 0.3);
-        fit(label, u * 0.23);
-        ctx.fillText(label, x + w / 2, y + h * 0.62);
-      } else {
-        fit(label, label.length > 1 ? (label.length > 4 ? u * 0.18 : u * 0.21) : u * 0.28);
-        ctx.fillText(label, x + w / 2, y + Math.min(h, u) * 0.46 + (h - Math.min(h, u)) / 2);
-      }
+      withKey(ctx, k, u, (rects, box) => {
+        const x = box.x,
+          y = box.y,
+          w = box.w,
+          h = box.h;
+        if (status && status.on) ctx.fillStyle = "#0a1030";
+        else if (cols) {
+          // Legends start grey and take on the key's colour as it gets brighter.
+          const tint = (grey, c) => Math.round(grey + (120 + c * 135 - grey) * L);
+          ctx.fillStyle = `rgb(${tint(98, r)},${tint(104, g)},${tint(116, b)})`;
+        } else ctx.fillStyle = status && status.changed ? "#eef0f2" : "#a3aab4";
+        if (cols && L > 0.15) {
+          ctx.shadowColor = `rgba(${(r * 255) | 0},${(g * 255) | 0},${(b * 255) | 0},${0.9 * L})`;
+          ctx.shadowBlur = u * 0.2;
+        } else ctx.shadowBlur = 0;
+        const fit = (text, size) => {
+          ctx.font = `500 ${size}px ${family}`;
+          const mw = w - u * 0.18;
+          const tw = ctx.measureText(text).width;
+          if (tw > mw) ctx.font = `500 ${Math.max(6, (size * mw) / tw)}px ${family}`;
+        };
+        if (sub) {
+          fit(sub, u * 0.19);
+          ctx.fillText(sub, x + w / 2, y + h * 0.3);
+          fit(label, u * 0.23);
+          ctx.fillText(label, x + w / 2, y + h * 0.62);
+        } else {
+          fit(label, label.length > 1 ? (label.length > 4 ? u * 0.18 : u * 0.21) : u * 0.28);
+          ctx.fillText(label, x + w / 2, y + Math.min(h, u) * 0.46 + (h - Math.min(h, u)) / 2);
+        }
+      });
     }
     ctx.restore();
   }

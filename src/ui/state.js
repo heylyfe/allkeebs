@@ -31,7 +31,8 @@ export let profiles = [];
 export const PROFILE_FIELDS = ["h", "s", "br", "speed", "fw"];
 
 export function loadProfiles() {
-  const saved = store.get("profiles", {});
+  const stored = store.get("profiles", {});
+  const saved = stored && typeof stored === "object" ? stored : {};
   profiles = PRESETS.map((p) => {
     const o = { ...p, fw: null };
     const s = saved[p.id];
@@ -62,5 +63,17 @@ export let profilesById = new Map();
 loadProfiles();
 
 export const currentProfile = () => profilesById.get(state.profileId) || profiles[0];
+
+export function reloadStoredState() {
+  const prefs = store.get("prefs", {});
+  state.prefs = Object.assign(
+    { theme: "dark", reduced: false, demoTyping: true },
+    prefs && typeof prefs === "object" ? prefs : {},
+  );
+  const profile = store.get("profile", "monsoon");
+  state.profileId = typeof profile === "number" ? (PRESETS[profile] || PRESETS[0]).id : profile;
+  state.keytestLayout = store.get("keytest.layout", "100");
+  loadProfiles();
+}
 
 export const savePrefs = () => store.set("prefs", state.prefs);
