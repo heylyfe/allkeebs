@@ -40,6 +40,11 @@ jobs:
           workspaces: src-tauri
       - run: npm ci
       - run: npm test
+      # The Rust build embeds the page and bundles the crate notices, so make them first.
+      - name: Desktop page and crate notices
+        run: |
+          npm run build:desktop
+          node tools/crate-notices.mjs
       - name: Rust checks
         working-directory: src-tauri
         run: |
