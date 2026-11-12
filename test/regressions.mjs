@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { gunzipSync } from "node:zlib";
 import { exactLayout, keyAtPoint, keyRectangles, presetLayout } from "../src/layouts.js";
-import { decodeDbLayout, keyboardDb } from "../src/kbdb.js";
+import { decodeDbLayout, keyboardDb, servedDefinition } from "../src/kbdb.js";
 import {
   distinctHidHandles,
   parseDefinitionText,
@@ -200,6 +200,10 @@ import { viaActiveKeys } from "@openmouse/keyboard-protocol/via";
   assert.equal(shippedKyria.keys.length, 54);
   assert.equal(shippedKyria.keys.filter((key) => key.r !== 0).length, 10);
   assert.ok(exactLayout("db", shippedKyria.name, shippedKyria.keys).H > 6.25);
+  // A shared id with several community files for one board: the one with lighting menus wins.
+  const rainy = shippedDb.lookup(0x320f, 0x5055, "Rainy75");
+  assert.equal(rainy.name, "Rainy 75");
+  assert.ok(servedDefinition(rainy).menus?.length, "Rainy 75 keeps its VIA lighting menu");
   values.set("allkeebs.prefs", JSON.stringify({ theme: "light", reduced: true }));
   values.set("allkeebs.keytest.layout", JSON.stringify("60"));
   values.set("allkeebs.profiles", "null");

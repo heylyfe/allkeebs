@@ -148,6 +148,7 @@ localStorage.setItem(
 import assert from "node:assert/strict";
 import { openKeyboard } from "../src/devices.js";
 import { createHidHandle } from "../src/hid/adapter.js";
+import { tauriTransport } from "../src/hid/tauri.js";
 
 // The same fake keyboard behind the byte-level backend a non-WebHID transport provides.
 const bridged = createHidHandle(device, {
@@ -178,10 +179,95 @@ const bridged = createHidHandle(device, {
   console.log(
     `ok   same ${direct.length} results and ${sent.length} reports through the HID adapter`,
   );
+
+  // The desktop transport, with Tauri's IPC mocked over the same fake keyboard.
+  reset();
+  const tauri = mockTauri();
+  globalThis.window = { __TAURI__: tauri.api };
+  localStorage.setItem(
+    "allkeebs.desktop.granted",
+    JSON.stringify([`${0x1234}:${0x5678}:${0xff60}:${0x61}:Rainy75`]),
+  );
+  const [handle, ...more] = await tauriTransport.granted();
+  assert.equal(more.length, 0);
+  assert.equal(handle.collections[0].usagePage, 0xff60, "collections come from the descriptor");
+  const viaTauri = await capture(() => run(handle));
+  assert.deepEqual(viaTauri, direct, "drivers behave the same through the Tauri transport");
+  assert.deepEqual(sent, directSent, "the Tauri transport sends exactly the same reports");
+  assert.equal((await tauriTransport.granted())[0], handle, "one handle per device path");
+  let gone = null,
+    back = null;
+  tauriTransport.on("disconnect", (h) => (gone = h));
+  tauriTransport.on("connect", (h) => (back = h));
+  tauri.emit("hid-disconnect", { path: "fake-via" });
+  assert.equal(gone, handle, "unplug reports the same handle the app holds");
+  await tauri.emit("hid-connect", (await tauri.api.core.invoke("hid_devices"))[0]);
+  assert.ok(back && back !== handle && back.productId === 0x5678, "replug hands out a new handle");
+  tauri.emit("hid-connect", { ...back, path: "other", productId: 1 });
+  console.log("ok   same results and reports through the Tauri transport; unplug and replug");
 })().catch((e) => {
   console.error(e);
   process.exitCode = 1;
 });
+
+// Tauri's IPC as src/hid/tauri.js sees it, backed by the fake keyboard: the Rust commands in
+// src-tauri/src/hid.rs and the events its reader and watcher threads emit.
+function mockTauri() {
+  const listeners = new Map();
+  const VIA_DESCRIPTOR = [
+    0x06, 0x60, 0xff, 0x09, 0x61, 0xa1, 0x01, 0x09, 0x62, 0x15, 0x00, 0x26, 0xff, 0x00, 0x95, 0x20,
+    0x75, 0x08, 0x81, 0x02, 0x09, 0x63, 0x15, 0x00, 0x26, 0xff, 0x00, 0x95, 0x20, 0x75, 0x08, 0x91,
+    0x02, 0xc0,
+  ];
+  const emit = (name, payload) => listeners.get(name)?.({ payload });
+  // hidapi hands over unnumbered input reports without an id byte.
+  const forward = (e) =>
+    emit("hid-input", {
+      path: "fake-via",
+      data: [...new Uint8Array(e.data.buffer, e.data.byteOffset, e.data.byteLength)],
+    });
+  const info = {
+    path: "fake-via",
+    vendorId: device.vendorId,
+    productId: device.productId,
+    productName: device.productName,
+    serial: "",
+    usagePage: 0xff60,
+    usage: 0x61,
+    interface: 1,
+  };
+  const commands = {
+    hid_devices: () => [info],
+    hid_descriptor: () => VIA_DESCRIPTOR,
+    async hid_open() {
+      if (device.opened) return;
+      await device.open();
+      device.addEventListener("inputreport", forward);
+    },
+    async hid_close() {
+      device.removeEventListener("inputreport", forward);
+      await device.close();
+    },
+    hid_write: ({ data }) => device.sendReport(data[0], Uint8Array.from(data.slice(1))),
+  };
+  return {
+    emit,
+    api: {
+      core: {
+        invoke: async (cmd, args) => {
+          if (!commands[cmd]) throw new Error(`unexpected command ${cmd}`);
+          return commands[cmd](args);
+        },
+      },
+      event: {
+        listen: async (name, fn) => {
+          listeners.set(name, fn);
+          return () => listeners.delete(name);
+        },
+      },
+    },
+  };
+}
 
 async function capture(fn) {
   const lines = [],

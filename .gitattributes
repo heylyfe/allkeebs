@@ -1,0 +1,8 @@
+# Check out text files with LF everywhere, so builds are byte-identical on Windows, macOS and Linux.
+* text=auto eol=lf
+*.gz binary
+*.bin binary
+*.xz binary
+*.png binary
+*.ico binary
+*.icns binary

@@ -26,7 +26,6 @@ Epomaker/hack70 : keyboards_hack70_hack70_EPOMAKER_Hack70.JSON
 Epomaker/p65 : EPOMAKER__P65.JSON
 Epomaker/th33 : keyboards_th33_th33_EPOMAKER_TH33.JSON
 Epomaker/th85 : keyboards_th85_x108_Epomaker_TH85.JSON
-Godoza/macropad-god-doesnt-exist : cybrix16_remap.json
 HiImMork/HiImMork : kb_VIA_MonsgeekM1V5_MORK_m1v5via_config.json
 Imdabossou/ArchinstallConfig : desktop_Akko-5075B-VIA-DIY-Kit-ISO.json
 JAO1988/ColorHoster-JSON : keyboards_akko_5087_5087.json
@@ -85,7 +84,6 @@ bofhgit/qmk_firmware_geonix4x : keyboards_idobao_id75_keymaps_vial_vial.json
 bulkinglb/via-terminal : internal_defs_keyboards_monsgeek-m1-v5-ansi.json
 bulkinglb/via-terminal : internal_defs_keyboards_monsgeek-m1-v5-iso.json
 cet-t/.settings : keyboards_gk61_gk61ds.base.json
-cet-t/.settings : keyboards_rainy75_rainy75.base.JSON
 chcbaram/baram-qmk-8k : src_ap_modules_qmk_keyboards_baram_Lucky65-8K_json_LUCKY65-8K-VIA.JSON
 chcbaram/esp32-qmk-lucky65 : firmware_lucky65-fw_main_ap_modules_qmk_keyboards_baram_Lucky65_json_LUCKY65-ESP32-VIA.JSON
 chzhc/oh-my-vim : hhkb_EPOMAKER_Hack59_usb.JSON
@@ -105,6 +103,7 @@ dyonng/keyboard-inventory : monsgeek_M2_via_V3.json
 dyonng/keyboard-inventory : monsgeek_M3_Json_File_V3.json
 dyonng/keyboard-inventory : neo_neo65_solder_v3.json
 ericduong107/split_keyboard_zuoya_GMK70 : ZUOYA+GMK70.json
+fMonco/keyboards : rainy-75.json
 fpb/ajazz-ak820-pro : QMKFWBinaries_via.json
 fpb/rp2040-onekey-kbd-lcd : keymaps_default_onekey.json
 fraustiz/lowfreed : assets_flow2_100_ansi.json
@@ -124,6 +123,7 @@ jwdb/qmk_sn32 : keyboards_royal_kludge_rk68_rgb_keymaps_via_rk68-rgb_via.json
 kiyoung92/keyboard-firmware : neo65_cu_keymaps_vial_vial.json
 maciekwiso/configs : qmk_epomaker_split65_via.json
 marcusbandit/banditshell : tests_fixtures_Epomaker_Galaxy100.json
+marvins/Code_Sandbox : keyboards_cybrix_16_Kiiboom-Cybrix16.json
 milouk/kemove-dk61-qmk : qmk_via_kemove_dk61_snowfox.json
 minjunkim0205/Hobby-CustomKeyboard : pcb_zuoya-gmk67-s_update_zuoya-gmk67-s-2.4g.json
 mnul/via-keymaps : via-definitions_Akko_5075-VIA_ANSI.json

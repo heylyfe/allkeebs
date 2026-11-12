@@ -1,6 +1,8 @@
 // Builds the whole site into docs/index.html, the folder GitHub Pages serves.
+// With --desktop, builds the desktop app's page (same UI, HID through Tauri) into desktop-dist/.
 import { build } from "esbuild";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+const desktop = process.argv.includes("--desktop");
 const pkg = JSON.parse(readFileSync("package.json", "utf8"));
 const repo = String(pkg.repository?.url || pkg.repository || "")
   .replace(/^git\+/, "")
@@ -12,7 +14,7 @@ const fonts = `@font-face{font-family:"DM Sans";font-style:normal;font-display:s
 @font-face{font-family:"JetBrains Mono";font-style:normal;font-display:swap;font-weight:400;src:url(data:font/woff2;base64,${b64("node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2")}) format("woff2");}
 @font-face{font-family:"JetBrains Mono";font-style:normal;font-display:swap;font-weight:500;src:url(data:font/woff2;base64,${b64("node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-500-normal.woff2")}) format("woff2");}`;
 const res = await build({
-  entryPoints: ["src/app.js"],
+  entryPoints: [desktop ? "src/desktop.js" : "src/app.js"],
   bundle: true,
   minify: true,
   format: "iife",
@@ -61,9 +63,10 @@ const html = `<!DOCTYPE html>
 <script>${js}</script>
 </body>
 </html>`;
-mkdirSync("docs", { recursive: true });
-writeFileSync("docs/index.html", html);
-writeFileSync("docs/.nojekyll", "");
+const outDir = desktop ? "desktop-dist" : "docs";
+mkdirSync(outDir, { recursive: true });
+writeFileSync(`${outDir}/index.html`, html);
+if (!desktop) writeFileSync("docs/.nojekyll", "");
 console.log(
-  `wrote docs/index.html ${(html.length / 1024).toFixed(0)} KB${repo ? "" : " (no repository url set in package.json yet)"}`,
+  `wrote ${outDir}/index.html ${(html.length / 1024).toFixed(0)} KB${repo ? "" : " (no repository url set in package.json yet)"}`,
 );

@@ -35,6 +35,17 @@ Keyboards without a tick are still recognised and drawn with the right layout, b
 
 **My VIA keyboard shows "guessed" lighting or no keymap.** That board isn't in the built-in list yet. If its maker publishes a VIA `.json` file, open the keyboard's **Overview** tab in allkeebs and click **Load .json**. allkeebs remembers it after that.
 
+## Desktop app (Windows)
+
+There's also a desktop app with the same features, for when you'd rather not use Chrome or Edge.
+It adds **hotkey macros**: put any macro on a shortcut like Ctrl+Alt+M and it types the macro on
+your computer, even with the window closed (allkeebs stays in the tray). This works with any
+keyboard, even one without on-board macros, and nothing is sent to the keyboard. Keyboards you
+allowed reconnect on their own when you plug them back in.
+
+Download the installer from the latest **CI** run on GitHub (Actions → CI → `allkeebs-windows`).
+macOS and Linux builds may come later.
+
 ## Is it safe?
 
 - **Your changes are reversible.** allkeebs never updates firmware or puts a keyboard into its bootloader. Everything goes through the keyboard's normal settings, and nothing is sent until you press **Apply**.
@@ -64,5 +75,7 @@ npm test        # checks the drivers against simulated keyboards
 `npm run data` followed by `npm run build:db` rebuilds the keyboard list from the latest VIA, Vial and QMK data, makers' own QMK firmware, OpenRGB, OpenRazer, ckb-next, the Linux kernel and the USB id list. `tools/models.txt` holds the hand-made list of model names and sizes. `npm run data` needs `git`, `curl` and a signed-in GitHub CLI (`gh`); on Windows, run it from Git Bash. Changes are listed in [CHANGELOG.md](CHANGELOG.md).
 
 All USB access goes through `src/hid/transport.js`. The site uses WebHID (`src/hid/webhid.js`); another backend can supply raw report I/O and get driver-compatible devices from `createHidHandle()` in `src/hid/adapter.js`.
+
+The desktop app lives in `src-tauri/` (Tauri 2, Rust). It needs [Rust](https://rustup.rs) and, on Windows, the Visual Studio C++ Build Tools. `npm run desktop` runs it and `npm run desktop:build` makes the installer. Its page is the same app built from `src/desktop.js`, which swaps in the Tauri transport (`src/hid/tauri.js`, over hidapi in `src-tauri/src/hid.rs`).
 
 </details>
