@@ -17,11 +17,15 @@ globalThis.fetch = async () => {
 const ROWS = 6,
   COLS = 16,
   LAYERS = 4;
-const keymap = new Uint8Array(LAYERS * ROWS * COLS * 2);
-for (let i = 0; i < ROWS * COLS; i++) keymap[i * 2 + 1] = 4 + (i % 26);
-const macros = new Uint8Array(1024);
-const custom = {};
-const sent = [];
+// Keyboard state, reset before each run so the direct and the adapter run see the same board.
+let keymap, macros, custom, sent;
+function reset() {
+  keymap = new Uint8Array(LAYERS * ROWS * COLS * 2);
+  for (let i = 0; i < ROWS * COLS; i++) keymap[i * 2 + 1] = 4 + (i % 26);
+  macros = new Uint8Array(1024);
+  custom = {};
+  sent = [];
+}
 const listeners = new Set();
 const device = {
   vendorId: 0x1234,
@@ -141,8 +145,58 @@ localStorage.setItem(
   "allkeebs.def.file." + (0x1234 * 65536 + 0x5678),
   JSON.stringify(JSON.stringify(raw)),
 );
+import assert from "node:assert/strict";
 import { openKeyboard } from "../src/devices.js";
+import { createHidHandle } from "../src/hid/adapter.js";
+
+// The same fake keyboard behind the byte-level backend a non-WebHID transport provides.
+const bridged = createHidHandle(device, {
+  async connect(onInput) {
+    await device.open();
+    this.forward = (e) =>
+      onInput(e.reportId, new Uint8Array(e.data.buffer, e.data.byteOffset, e.data.byteLength));
+    device.addEventListener("inputreport", this.forward);
+  },
+  async disconnect() {
+    device.removeEventListener("inputreport", this.forward);
+    await device.close();
+  },
+  send: (id, bytes) => device.sendReport(id, bytes),
+  sendFeature: (id, bytes) => device.sendFeatureReport(id, bytes),
+  receiveFeature: async (id) => new Uint8Array((await device.receiveFeatureReport(id)).buffer),
+});
+
 (async () => {
+  reset();
+  const direct = await capture(() => run(device));
+  const directSent = sent;
+  reset();
+  const viaAdapter = await capture(() => run(bridged));
+  assert.deepEqual(viaAdapter, direct, "drivers behave the same through the HID adapter");
+  assert.deepEqual(sent, directSent, "the adapter sends exactly the same reports");
+  for (const line of direct) console.log(line);
+  console.log(
+    `ok   same ${direct.length} results and ${sent.length} reports through the HID adapter`,
+  );
+})().catch((e) => {
+  console.error(e);
+  process.exitCode = 1;
+});
+
+async function capture(fn) {
+  const lines = [],
+    log = console.log;
+  console.log = (...a) =>
+    lines.push(a.map((x) => (typeof x === "string" ? x : JSON.stringify(x))).join(" "));
+  try {
+    await fn();
+  } finally {
+    console.log = log;
+  }
+  return lines;
+}
+
+async function run(device) {
   const a = await openKeyboard(device, (m) => console.log("log:", m));
   console.log(
     "family",
@@ -205,4 +259,5 @@ import { openKeyboard } from "../src/devices.js";
     a.macros.macroKeycode(0)?.toString(16),
     a.keymap.describe(a.macros.macroKeycode(0)).label,
   );
-})();
+  await a.close();
+}

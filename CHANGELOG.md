@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.0.2 — 2026-11-12
+
+Groundwork for a desktop app. The website works exactly as before; nothing to migrate.
+
+- All USB access now goes through one HID transport (`src/hid/transport.js`): checking support,
+  the device picker, already-allowed devices, and plug/unplug events. The website's transport is
+  WebHID (`src/hid/webhid.js`) and hands the browser's own devices to the drivers, untouched.
+- `createHidHandle()` (`src/hid/adapter.js`) turns a plain byte backend (connect, send,
+  sendFeature, receiveFeature, disconnect) into a device the drivers accept. The desktop app will
+  use it for its Rust HID bridge, since desktop webviews have no WebHID.
+- The simulated VIA keyboard test now runs twice, directly and through the adapter, and checks
+  that both runs give the same results and send exactly the same reports.
+
 ## 1.0.1 — 2026-11-12
 
 Housekeeping: dependency updates and a fresh keyboard database. Nothing changes in how allkeebs
