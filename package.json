@@ -1,11 +1,11 @@
 {
   "name": "allkeebs",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Configure lighting, keymaps and macros on keyboards from almost any brand, in the browser over WebHID.",
   "scripts": {
     "build": "node build.mjs",
     "data": "sh tools/fetch-data.sh && sh tools/harvest-github.sh",
-    "build:db": "node tools/collect-ids.mjs data data/ids.json && node tools/build-db.mjs src/kbdb.json.gz --qmk data/qmk --qmk data/keychron --qmk data/nuphy --qmk data/sonix --qmk data/epomaker --qmk data/monsgeek --qmk data/cipulot --qmk data/zsa --via data/via/v3 --via data/via/src --via data/viamia/keyboards --via data/keychron/keyboards --via data/nuphy/keyboards --via data/epomaker/keyboards --via data/monsgeek/keyboards --via data/cipulot/keyboards --via tools/definitions --via data/github-via --vial data/vial/keyboards --ids data/ids.json --models tools/models.txt",
+    "build:db": "node tools/collect-ids.mjs data data/ids.json && node tools/build-db.mjs src/kbdb.json.gz --qmk data/qmk --qmk data/keychron --qmk data/nuphy --qmk data/sonix --qmk data/epomaker --qmk data/monsgeek --qmk data/cipulot --qmk data/zsa --via data/via/v3 --via data/via/src --via data/viamia/keyboards --via data/keychron/keyboards --via data/nuphy/keyboards --via data/epomaker/keyboards --via data/monsgeek/keyboards --via data/cipulot/keyboards --via tools/definitions --via data/github-via --vial data/vial/keyboards --ids data/ids.json --models tools/models.txt --sources tools/github-via-sources.txt",
     "build:search": "node -e \"import('./src/effects.js').then(m => console.log(m.PRESETS.map(m.presetWords).join(' ').toLowerCase().replace(/[^a-z\\s-]/g, ' ')))\" > data/glove/corpus.txt && python3 tools/build-vectors.py data/glove/glove50.gz data/glove/corpus.txt src",
     "test": "node test/run.mjs"
   },
@@ -24,8 +24,8 @@
     "@fontsource-variable/dm-sans": "^5.3.0",
     "@fontsource/jetbrains-mono": "^5.3.0",
     "@openmouse/keyboard-protocol": "^1.6.1",
-    "esbuild": "^0.24.0",
-    "lucide": "^0.468.0",
+    "esbuild": "^0.28.2",
+    "lucide": "^1.72.0",
     "xz-decompress": "^0.2.2"
   },
   "type": "module",
@@ -35,6 +35,6 @@
   },
   "private": true,
   "devDependencies": {
-    "prettier": "^3.6.2"
+    "prettier": "^3.10.1"
   }
 }

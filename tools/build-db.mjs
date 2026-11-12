@@ -8,13 +8,15 @@
 // usage: node tools/build-db.mjs <out.json.gz> [--qmk dir]... [--via dir]... [--vial dir]...
 //        [--ids ids.json] [--models models.txt]
 import { readFileSync, readdirSync, statSync, existsSync, writeFileSync } from "node:fs";
-import { join, dirname, relative } from "node:path";
+// POSIX paths on every platform: the file filters and name fallbacks below split on "/",
+// and Windows' fs accepts forward slashes.
+import { join, dirname, relative } from "node:path/posix";
 import { gzipSync } from "node:zlib";
 import { guessFromName } from "../src/layouts.js";
 
 const args = process.argv.slice(2);
 const out = args.shift();
-const opt = { qmk: [], via: [], vial: [], ids: null, models: null };
+const opt = { qmk: [], via: [], vial: [], ids: null, models: null, sources: null };
 while (args.length) {
   const flag = args.shift().replace(/^--/, ""),
     value = args.shift();
@@ -402,6 +404,23 @@ const db = {
 const json = JSON.stringify(db),
   gz = gzipSync(json, { level: 9 });
 writeFileSync(out, gz);
+// --sources: credit every GitHub-harvested VIA file the database kept, as "owner/repo : file".
+// harvest-github.sh names files owner_repo__path; GitHub owners can't contain "_".
+if (opt.sources) {
+  const credits = new Set(),
+    unnamed = [];
+  for (const list of via.values())
+    for (const d of list) {
+      if (!/(^|\/)github-via\//.test(d.path)) continue;
+      const m = /github-via\/([^_/]+)_(.+?)__(.+)$/.exec(d.path);
+      if (m) credits.add(`${m[1]}/${m[2]} : ${m[3]}`);
+      else unnamed.push(d.path);
+    }
+  if (unnamed.length) throw new Error(`can't credit ${unnamed.length} files: ${unnamed[0]}`);
+  const sorted = [...credits].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  writeFileSync(opt.sources, sorted.join("\n") + "\n");
+  console.log(`credited ${sorted.length} GitHub VIA files in ${opt.sources}`);
+}
 console.log(
   `boards ${boards.length} (via ${via.size}, qmk ids ${qmk.size}, ambiguous skipped ${skipped}, via boards with legends ${labelled})`,
 );

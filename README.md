@@ -61,6 +61,6 @@ npm run build   # writes the whole site to docs/index.html
 npm test        # checks the drivers against simulated keyboards
 ```
 
-`npm run data` followed by `npm run build:db` rebuilds the keyboard list from the latest VIA, Vial and QMK data, makers' own QMK firmware, OpenRGB, OpenRazer, ckb-next, the Linux kernel and the USB id list. `tools/models.txt` holds the hand-made list of model names and sizes.
+`npm run data` followed by `npm run build:db` rebuilds the keyboard list from the latest VIA, Vial and QMK data, makers' own QMK firmware, OpenRGB, OpenRazer, ckb-next, the Linux kernel and the USB id list. `tools/models.txt` holds the hand-made list of model names and sizes. `npm run data` needs `git`, `curl` and a signed-in GitHub CLI (`gh`); on Windows, run it from Git Bash. Changes are listed in [CHANGELOG.md](CHANGELOG.md).
 
 </details>
