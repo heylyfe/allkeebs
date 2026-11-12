@@ -2,12 +2,14 @@
 // (bundled as THIRD_PARTY_CRATES.txt; see src-tauri/tauri.conf.json).
 //
 // usage: node tools/crate-notices.mjs [target-triple] [out-file]
-//   defaults: the host target, src-tauri/THIRD_PARTY_CRATES.txt
+//   defaults: the host target (from rustc), src-tauri/THIRD_PARTY_CRATES.txt
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-const target = process.argv[2] || "";
+// The crates of the platform being built, not every platform's, by default.
+const host = () => /^host: (.+)$/m.exec(execFileSync("rustc", ["-vV"], { encoding: "utf8" }))?.[1];
+const target = process.argv[2] || host() || "";
 const out = process.argv[3] || "src-tauri/THIRD_PARTY_CRATES.txt";
 const args = ["metadata", "--format-version", "1", "--manifest-path", "src-tauri/Cargo.toml"];
 if (target) args.push("--filter-platform", target);
