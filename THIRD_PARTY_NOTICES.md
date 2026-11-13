@@ -57,15 +57,15 @@ by cherryrgb-rs (MIT, https://github.com/skraus-dev/cherryrgb-rs).
 ## Desktop app (`src-tauri/`, not part of the website)
 
 The desktop app runs the same web UI and drivers listed above, plus these Rust crates and their
-dependencies (242 crates in the Windows build, all under licences compatible with the AGPL: MIT,
+dependencies (about 250 crates in the Windows build, all under licences compatible with the AGPL: MIT,
 Apache-2.0, BSD, Zlib, MPL-2.0, Unicode-3.0 and similar).
 
-| Project                                                   | Used for                              | Licence                                   | Source                                |
-| --------------------------------------------------------- | ------------------------------------- | ----------------------------------------- | ------------------------------------- |
-| Tauri 2, tauri-plugin-global-shortcut, single-instance    | App window, tray, IPC, global hotkeys | MIT OR Apache-2.0                         | https://github.com/tauri-apps/tauri   |
-| hidapi (Rust bindings), with the bundled hidapi C library | USB HID access                        | MIT; C library used under its BSD licence | https://github.com/ruabmbua/hidapi-rs |
-| enigo                                                     | Typing hotkey macros                  | MIT                                       | https://github.com/enigo-rs/enigo     |
-| serde, serde_json                                         | Settings and IPC data                 | MIT OR Apache-2.0                         | https://github.com/serde-rs/serde     |
+| Project                                                           | Used for                                                  | Licence                                   | Source                                |
+| ----------------------------------------------------------------- | --------------------------------------------------------- | ----------------------------------------- | ------------------------------------- |
+| Tauri 2, tauri-plugin-global-shortcut, single-instance, autostart | App window, tray, IPC, global hotkeys, start with Windows | MIT OR Apache-2.0                         | https://github.com/tauri-apps/tauri   |
+| hidapi (Rust bindings), with the bundled hidapi C library         | USB HID access                                            | MIT; C library used under its BSD licence | https://github.com/ruabmbua/hidapi-rs |
+| enigo                                                             | Typing hotkey macros                                      | MIT                                       | https://github.com/enigo-rs/enigo     |
+| serde, serde_json                                                 | Settings and IPC data                                     | MIT OR Apache-2.0                         | https://github.com/serde-rs/serde     |
 
 The installer carries `THIRD_PARTY_CRATES.txt` with every crate's licence text, written at build
 time by `tools/crate-notices.mjs` from Cargo's metadata, alongside this file and `LICENSE`. The app

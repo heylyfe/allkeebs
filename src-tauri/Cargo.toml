@@ -1,6 +1,6 @@
 [package]
 name = "allkeebs"
-version = "1.1.1"
+version = "1.2.0"
 description = "Keyboard lighting, keymaps and macros, with hotkey macros that keep working from the tray"
 authors = ["heylyfe"]
 license = "AGPL-3.0-or-later"
@@ -19,6 +19,7 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-global-shortcut = "2"
 tauri-plugin-single-instance = "2"
+tauri-plugin-autostart = "2"
 hidapi = "2.6"
 enigo = "0.6"
 serde = { version = "1", features = ["derive"] }

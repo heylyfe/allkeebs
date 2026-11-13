@@ -41,15 +41,34 @@ There's also a desktop app with the same features, for when you'd rather not use
 It adds **hotkey macros**: put any macro on a shortcut like Ctrl+Alt+M and it types the macro on
 your computer, even with the window closed (allkeebs stays in the tray). This works with any
 keyboard, even one without on-board macros, and nothing is sent to the keyboard. Keyboards you
-allowed reconnect on their own when you plug them back in.
+allowed reconnect on their own when you plug them back in. It can also start with Windows,
+quietly in the tray, if you turn that on in **Preferences**.
 
-Download the installer from the latest **CI** run on GitHub (Actions → CI → `allkeebs-windows`).
-macOS and Linux builds may come later.
+**[Download for Windows → Releases](https://github.com/heylyfe/allkeebs/releases/latest)**: get
+the file ending in `-setup.exe`, open it and follow the installer. Until releases are code-signed
+(see below), Windows shows "Windows protected your PC": click **More info**, then **Run anyway**.
+PCs with Smart App Control turned on block unsigned apps completely. macOS and Linux builds may
+come later.
 
 ## Is it safe?
 
 - **Your changes are reversible.** allkeebs never updates firmware or puts a keyboard into its bootloader. Everything goes through the keyboard's normal settings, and nothing is sent until you press **Apply**.
-- **It's private.** There are no accounts, cookies, analytics or ads. Your profiles and settings stay in your browser. The only outside request is to usevia.app, and only for a keyboard that isn't in the built-in list.
+- **It's private.** There are no accounts, cookies, analytics or ads. Your profiles and settings stay in your browser (or on your computer, in the desktop app). The only outside request is to usevia.app, and only for a keyboard that isn't in the built-in list.
+
+## Code signing policy
+
+Windows releases are built from this repository's source by GitHub Actions
+(`.github/workflows/release.yml`) and will be signed through SignPath once the project is
+approved: free code signing provided by [SignPath.io](https://about.signpath.io), certificate by
+[SignPath Foundation](https://signpath.org). Until then, releases are unsigned and say so.
+
+- Committers and reviewers: [heylyfe](https://github.com/heylyfe)
+- Approvers (each signed release is approved by hand): [heylyfe](https://github.com/heylyfe)
+
+**Privacy:** allkeebs sends nothing about you or your keyboards to any server. The one network
+request it makes is to usevia.app, to fetch the layout of a keyboard that isn't in its built-in
+list; that request contains only the keyboard's USB id. There are no accounts, analytics or
+update checks.
 
 ## Found a problem?
 
