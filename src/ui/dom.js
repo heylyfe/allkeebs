@@ -1,6 +1,7 @@
 // Small DOM helpers shared by every page: querying, escaping, icons, toasts and the activity log.
 
 import * as L from "lucide";
+import { transport } from "../hid/transport.js";
 
 export const VERSION = typeof __VERSION__ === "string" ? __VERSION__ : "dev";
 
@@ -121,3 +122,6 @@ export const log = (msg) => {
   activityLog.push(`${new Date().toLocaleTimeString()}  ${msg}`);
   if (activityLog.length > 200) activityLog.shift();
 };
+
+/** True in the desktop app (HID through Tauri) rather than a browser tab over WebHID. */
+export const onDesktop = () => transport().name === "tauri";

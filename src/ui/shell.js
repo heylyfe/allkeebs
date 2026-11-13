@@ -146,5 +146,6 @@ export function render() {
   })[r](page);
   renderSide();
   renderPending();
+  drawAscii();
   window.scrollTo(0, 0);
 }

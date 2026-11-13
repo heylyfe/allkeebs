@@ -1,6 +1,6 @@
 // Preferences: theme, motion, backup and the activity log.
 
-import { $, $$, VERSION, activityLog, esc, icons, sandboxed, toast } from "../dom.js";
+import { $, $$, VERSION, activityLog, esc, icons, onDesktop, sandboxed, toast } from "../dom.js";
 import { applyTheme, render } from "../shell.js";
 import { reloadStoredState, savePrefs, state } from "../state.js";
 
@@ -25,7 +25,7 @@ export function pagePrefs(page) {
 
   page.innerHTML = `
     <h1>Preferences</h1>
-    <p class="lede">Stored in this browser only.</p>
+    <p class="lede">Stored ${onDesktop() ? "on this computer" : "in this browser"} only.</p>
     <div class="panel" style="margin-top:24px">
       <h2>Appearance</h2>
       <div class="row">
