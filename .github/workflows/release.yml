@@ -1,0 +1,124 @@
+# Publishes a GitHub Release with the Windows installers when a version tag (v1.2.3) is pushed.
+#
+# Signing (optional): with the SignPath secrets below set, allkeebs.exe is signed first, the
+# installers are built around the signed exe, and then the installers are signed too. Each
+# signing request waits for a manual approval in SignPath. Without the secrets, the release is
+# published unsigned. See .signpath/README.md for the one-time setup.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    env:
+      SIGN: ${{ secrets.SIGNPATH_API_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: npm ci
+      - run: npm test
+
+      - name: Tag matches package.json
+        id: ver
+        shell: bash
+        run: |
+          v=$(node -p "require('./package.json').version")
+          [ "v$v" = "$GITHUB_REF_NAME" ] || { echo "::error::tag $GITHUB_REF_NAME but package.json is $v"; exit 1; }
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+
+      - name: Build the app
+        run: npx tauri build --no-bundle
+
+      # 1. Sign allkeebs.exe before it goes into the installers.
+      - name: Upload exe for signing
+        if: env.SIGN == 'true'
+        id: exe
+        uses: actions/upload-artifact@v7
+        with:
+          name: unsigned-exe
+          path: src-tauri/target/release/allkeebs.exe
+      - name: Sign exe
+        if: env.SIGN == 'true'
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: app-exe
+          github-artifact-id: ${{ steps.exe.outputs.artifact-id }}
+          parameters: |
+            version: "${{ steps.ver.outputs.version }}"
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: signed-exe
+      - name: Use the signed exe
+        if: env.SIGN == 'true'
+        shell: bash
+        run: cp signed-exe/allkeebs.exe src-tauri/target/release/allkeebs.exe
+
+      - name: Build the installers
+        run: npx tauri bundle
+      - name: Collect installers
+        shell: bash
+        run: |
+          mkdir dist
+          cp src-tauri/target/release/bundle/nsis/*.exe src-tauri/target/release/bundle/msi/*.msi dist/
+
+      # 2. Sign the installers themselves.
+      - name: Upload installers for signing
+        if: env.SIGN == 'true'
+        id: inst
+        uses: actions/upload-artifact@v7
+        with:
+          name: unsigned-installers
+          path: dist/*
+      - name: Sign installers
+        if: env.SIGN == 'true'
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: installers
+          github-artifact-id: ${{ steps.inst.outputs.artifact-id }}
+          parameters: |
+            version: "${{ steps.ver.outputs.version }}"
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: signed-installers
+      - name: Use the signed installers
+        if: env.SIGN == 'true'
+        shell: bash
+        run: cp -f signed-installers/* dist/
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: allkeebs-windows
+          path: dist/*
+
+      - name: Publish the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          v=${{ steps.ver.outputs.version }}
+          # This version's CHANGELOG section becomes the release notes.
+          awk -v v="$v" '$0 ~ "^## "v" " {on=1; next} on && /^## / {exit} on' CHANGELOG.md > notes.md
+          if [ "$SIGN" != "true" ]; then
+            printf '\n> These installers are not code-signed yet. Windows SmartScreen will ask you to confirm (More info, then Run anyway), and PCs with Smart App Control on will block them.\n' >> notes.md
+          fi
+          gh release create "$GITHUB_REF_NAME" dist/* --title "allkeebs $v" --notes-file notes.md

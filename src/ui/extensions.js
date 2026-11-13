@@ -6,3 +6,6 @@
  * ctx = { kb, slot, steps, name } for the macro being edited.
  */
 export const macroPanels = [];
+
+/** Extra panels on the Preferences page, after Appearance. Each is { html() -> string, bind(page) }. */
+export const prefPanels = [];

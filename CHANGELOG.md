@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.2.0 — 2026-11-13
+
+Desktop app extras. The website is unchanged; nothing to migrate.
+
+- **Releases with a normal download link.** Pushing a version tag (`v1.2.0`) runs
+  `.github/workflows/release.yml`, which builds the Windows installers and publishes them on
+  GitHub Releases, with this changelog section as the notes. The README links to the latest
+  release.
+- **Code signing, ready for SignPath.** Once SignPath Foundation approves the project and its
+  secrets are added, releases are signed automatically. `allkeebs.exe` is signed first, then the
+  installers are built around it and signed too, so Smart App Control and SmartScreen can trust
+  both. Until then, releases are unsigned and say so. Setup steps are in `.signpath/README.md`,
+  and the README has the code signing policy SignPath asks for.
+- **Start with Windows** (Preferences, desktop app only; off by default). allkeebs then starts
+  in the tray without opening its window, so hotkey macros work right after you log in.
+
 ## 1.1.1 — 2026-11-13
 
 - The blue ASCII texture in the top-right corner now only fills the empty space beside a page's

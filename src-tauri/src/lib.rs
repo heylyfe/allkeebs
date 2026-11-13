@@ -11,6 +11,7 @@ use std::sync::Arc;
 use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Manager, WindowEvent, Wry};
+use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 
 const TRAY: &str = "main";
 
@@ -46,6 +47,20 @@ fn tray_menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
     )
 }
 
+const MINIMIZED: &str = "--minimized";
+
+#[tauri::command]
+fn autostart_get(app: AppHandle) -> bool {
+    app.autolaunch().is_enabled().unwrap_or(false)
+}
+
+#[tauri::command]
+fn autostart_set(app: AppHandle, on: bool) -> Result<bool, String> {
+    let al = app.autolaunch();
+    if on { al.enable() } else { al.disable() }.map_err(|e| e.to_string())?;
+    al.is_enabled().map_err(|e| e.to_string())
+}
+
 /// Rebuilds the tray menu after hotkeys change.
 pub(crate) fn refresh_tray(app: &AppHandle) {
     if let (Some(tray), Ok(menu)) = (app.tray_by_id(TRAY), tray_menu(app)) {
@@ -69,12 +84,21 @@ pub fn run() {
                 })
                 .build(),
         )
+        // "Start with Windows" (off until turned on in Preferences) launches with --minimized.
+        .plugin(tauri_plugin_autostart::init(
+            MacosLauncher::LaunchAgent,
+            Some(vec![MINIMIZED]),
+        ))
         .manage(hid.clone())
         .setup(move |app| {
             let handle = app.handle().clone();
             app.manage(hotkeys::Hotkeys::load(&handle));
             app.state::<hotkeys::Hotkeys>().apply(&handle);
             hid.clone().watch(handle.clone());
+            // Started with Windows: stay in the tray. Otherwise show the window as usual.
+            if !std::env::args().any(|a| a == MINIMIZED) {
+                show(&handle);
+            }
 
             TrayIconBuilder::with_id(TRAY)
                 .icon(app.default_window_icon().cloned().expect("app icon"))
@@ -127,6 +151,8 @@ pub fn run() {
             hotkeys::hotkeys_get,
             hotkeys::hotkeys_set,
             hotkeys::hotkeys_pause,
+            autostart_get,
+            autostart_set,
         ])
         .run(tauri::generate_context!())
         .expect("error while running allkeebs");

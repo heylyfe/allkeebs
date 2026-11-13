@@ -1,6 +1,7 @@
 // Preferences: theme, motion, backup and the activity log.
 
 import { $, $$, VERSION, activityLog, esc, icons, onDesktop, sandboxed, toast } from "../dom.js";
+import { prefPanels } from "../extensions.js";
 import { applyTheme, render } from "../shell.js";
 import { reloadStoredState, savePrefs, state } from "../state.js";
 
@@ -41,6 +42,7 @@ export function pagePrefs(page) {
         <span>${toggle("pfDemo", state.prefs.demoTyping)}</span>
       </div>
     </div>
+    ${prefPanels.map((p) => p.html()).join("")}
     <div class="panel">
       <h2>Your data</h2>
       <p class="sub">Profiles, layout choices, macro names and VIA files you loaded</p>
@@ -65,6 +67,7 @@ export function pagePrefs(page) {
         <button class="btn sm" data-go="about">${icons.about}About and credits</button>
       </div>
     </div>`;
+  for (const p of prefPanels) p.bind(page);
   $$("[data-th]").forEach(
     (b) =>
       (b.onclick = () => {
