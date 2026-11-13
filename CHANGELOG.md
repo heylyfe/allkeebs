@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.1 — 2026-11-13
+
+- The blue ASCII texture in the top-right corner now only fills the empty space beside a page's
+  heading and intro, and hides when there's no room, instead of running behind the text in
+  narrower windows (such as the desktop app's default size).
+- The desktop app no longer talks about "this browser tab", Chrome's device list or WebHID on the
+  Keyboards, About and Preferences pages. The website's wording is unchanged.
+
 ## 1.1.0 — 2026-11-12
 
 A desktop app for Windows. The website is unchanged; nothing to migrate.

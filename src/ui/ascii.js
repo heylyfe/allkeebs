@@ -32,12 +32,30 @@ const SEED = [Math.random() * 997 * 1.37, Math.random() * 991 * 0.73];
 
 let asciiCols = 0;
 
+// Only as wide as the empty space right of the page's heading and intro, so it never sits
+// behind text. Hidden when there's no room (narrow windows, like the desktop app's default).
+function freeWidth(el) {
+  const main = el.parentElement?.getBoundingClientRect();
+  if (!main) return 0;
+  let textRight = main.left;
+  // The text's own extent: block boxes stretch to the page edge even when the words don't.
+  const range = document.createRange();
+  for (const t of document.querySelectorAll("#page > h1, #page > .lede")) {
+    range.selectNodeContents(t);
+    textRight = Math.max(textRight, range.getBoundingClientRect().right);
+  }
+  return main.right - textRight - 32;
+}
+
 export function drawAscii() {
   const el = $(".ascii");
   if (!el) return;
-  const cols = clamp(Math.trunc((window.innerWidth * 0.42) / 6.6), 24, 104);
+  const fit = Math.trunc(Math.min(freeWidth(el), window.innerWidth * 0.42) / 6.6);
+  const cols = fit < 24 ? 0 : clamp(fit, 24, 104);
   if (cols === asciiCols) return;
   asciiCols = cols;
+  el.hidden = !cols;
+  if (!cols) return;
   const rows = 40,
     ramp = " .:-=+*#%@",
     gridRows = Math.max(2, Math.round((14 * rows) / (cols * 0.43))),

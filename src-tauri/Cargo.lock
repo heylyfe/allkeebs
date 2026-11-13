@@ -19,7 +19,7 @@ dependencies = [
 
 [[package]]
 name = "allkeebs"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "enigo",
  "hidapi",

@@ -4,7 +4,7 @@ import { hidSupport } from "../../devices.js";
 import { sizeClass } from "../../layouts.js";
 import { KeyboardView } from "../../render.js";
 import { connect, demo, openDevice, removeDevice } from "../connect.js";
-import { $, $$, esc, icons } from "../dom.js";
+import { $, $$, esc, icons, onDesktop } from "../dom.js";
 import { layoutFor } from "../layout-choice.js";
 import { views } from "../loop.js";
 import { currentProfile, state } from "../state.js";
@@ -30,7 +30,7 @@ function addKeyboardCard() {
     <div class="dev add ${first ? "big" : ""}">
       <h3>Add a keyboard</h3>
       <p>
-        Plug it in with a cable, then pick it from the list Chrome shows. allkeebs recognises it
+        Plug it in with a cable, then ${onDesktop() ? "click Connect keyboard and tick it in the list" : "pick it from the list Chrome shows"}. allkeebs recognises it
         from a database of more than 4,500 keyboards. Lighting, keymap and macros work on VIA,
         Vial and QMK boards from any brand. Keychron Hall effect boards get keymaps, and Razer,
         Logitech, SteelSeries and Arbiter models get lighting.
@@ -69,9 +69,11 @@ export function pageHome(page) {
   page.innerHTML = `
     <h1>Keyboards</h1>
     <p class="lede">
-      Change lighting, keymaps and macros on the keyboards plugged into this computer. Everything
-      runs in this browser tab over WebHID, so there’s nothing to install and nothing leaves your
-      machine.
+      Change lighting, keymaps and macros on the keyboards plugged into this computer. ${
+        onDesktop()
+          ? "Everything runs in this app, on this computer, so nothing leaves your machine."
+          : "Everything runs in this browser tab over WebHID, so there’s nothing to install and nothing leaves your machine."
+      }
     </p>
     <div class="shelf ${state.devices.length ? "" : "solo"}">
       ${state.devices.map(keyboardCard).join("")}

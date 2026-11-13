@@ -1,6 +1,6 @@
 // About and credits.
 
-import { AUTHOR, SOURCE_URL, VERSION, esc, icons } from "../dom.js";
+import { AUTHOR, SOURCE_URL, VERSION, esc, icons, onDesktop } from "../dom.js";
 
 const CREDITS = [
   [
@@ -147,8 +147,8 @@ export function pageAbout(page) {
   page.innerHTML = `
     <h1>About allkeebs</h1>
     <p class="lede">
-      allkeebs changes the lighting, keymap and macros of keyboards from almost any brand, right
-      in the browser, and tests every key. It’s free and open source${madeBy}.
+      allkeebs changes the lighting, keymap and macros of keyboards from almost any brand, ${onDesktop() ? "on your computer" : "right in the browser"},
+      and tests every key. It’s free and open source${madeBy}.
     </p>
     <div class="grid2" style="margin-top:24px">
       <div class="col">
@@ -175,7 +175,11 @@ export function pageAbout(page) {
           <h2>Privacy</h2>
           <p class="sub" style="margin:0">
             No accounts, cookies, analytics or ads. Your profiles, layout choices and macro names
-            stay in this browser’s storage. Keyboards talk to this tab directly over WebHID and
+            ${
+              onDesktop()
+                ? "stay on this computer. Keyboards talk to the app directly over USB and"
+                : "stay in this browser’s storage. Keyboards talk to this tab directly over WebHID and"
+            }
             nothing about them is sent anywhere. The one request allkeebs makes is to usevia.app,
             and only for a keyboard that isn’t in the built-in database.
           </p>
