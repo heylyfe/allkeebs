@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.1 — 2026-11-14
+
+- **Keyboards that share a USB id get the right name everywhere.** Several boards use the same
+  id as the Rainy 75 (`320F:5055`), and the first of them is the ZUOYA GMK87. A VIA keyboard was
+  already matched by the name it reports, but a keyboard connected through an interface without
+  VIA settings (its typing interface, say) was looked up by id alone and could show up as the
+  GMK87. It's now matched by its reported name, or the board you picked, there too.
+- The desktop app's device chooser says what each entry is for ("Settings (VIA)", "Typing
+  only", "Media keys" and so on), so it's clear which one to tick.
+
 ## 1.2.0 — 2026-11-13
 
 Desktop app extras. The website is unchanged; nothing to migrate.

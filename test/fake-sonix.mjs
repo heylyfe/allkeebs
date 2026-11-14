@@ -100,4 +100,9 @@ const check = (label, ok) => {
 
   const other = await openKeyboard(fake(0x320f, 0x9999, "Unknown", 0xff1c)).catch((e) => e);
   check("unknown products aren't driven", other?.family !== "sonix");
+
+  // Boards sharing a USB id: the Rainy 75's typing interface is named by what it reports,
+  // not by the first board with that id (ZUOYA GMK87).
+  const rainy = await openKeyboard(fake(0x320f, 0x5055, "Rainy75", 0x01));
+  check("shared id is identified by its reported name", rainy.name === "Rainy 75");
 })();

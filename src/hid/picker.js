@@ -5,6 +5,18 @@ import { esc } from "../ui/dom.js";
 
 const hex4 = (n) => (n >>> 0).toString(16).toUpperCase().padStart(4, "0");
 
+// What an interface is for, in words: keyboards expose several, and only some carry settings.
+const kindOf = (d) =>
+  d.usagePage === 0xff60
+    ? "Settings (VIA): pick this one"
+    : d.usagePage >= 0xff00
+      ? "Vendor settings"
+      : d.usagePage === 0x01 && d.usage === 0x06
+        ? "Typing only"
+        : d.usagePage === 0x0c
+          ? "Media keys"
+          : "Other";
+
 export function pickDevices(list) {
   return new Promise((resolve) => {
     const shade = document.createElement("div");
@@ -18,7 +30,7 @@ export function pickDevices(list) {
         <label class="mitem" style="display:flex;gap:12px;align-items:center;cursor:pointer">
           <input type="checkbox" data-i="${i}">
           <span><em>${esc(d.productName || "HID device")}</em>
-            <small>${hex4(d.vendorId)}:${hex4(d.productId)} · usage ${hex4(d.usagePage)}:${hex4(d.usage)}</small></span>
+            <small>${kindOf(d)} · ${hex4(d.vendorId)}:${hex4(d.productId)} · usage ${hex4(d.usagePage)}:${hex4(d.usage)}</small></span>
         </label>`,
           )
           .join("")
