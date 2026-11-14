@@ -912,13 +912,19 @@ async function sonixAdapter(device, family, log) {
   return kb;
 }
 
+/** The board the user picked for this USB id, when several boards share it. */
+const pickedBoard = (device) =>
+  store.get("db.pick." + via.viaVendorProductId(device.vendorId, device.productId), "");
+
 /**
  * A keyboard no driver can configure. It's identified from the database or its name and
  * still gets a layout and the key test.
  */
 async function identifiedAdapter(device, why) {
   const e = await keyboardDb()
-    .then((db) => db.lookup(device.vendorId, device.productId))
+    .then((db) =>
+      db.lookup(device.vendorId, device.productId, device.productName, pickedBoard(device)),
+    )
     .catch(() => null);
   const status = {
     brand: "Generic HID",
@@ -979,7 +985,12 @@ export async function openKeyboard(device, log = () => {}) {
 async function addSizeHint(kb, device) {
   if (kb.exactLayout || kb.layoutHint) return;
   const db = await keyboardDb();
-  const byId = db.lookup(device.vendorId, device.productId);
+  const byId = db.lookup(
+    device.vendorId,
+    device.productId,
+    device.productName,
+    pickedBoard(device),
+  );
   const hit = byId?.size ? byId : db.matchName(device.productName) || db.matchName(kb.name);
   if (!hit?.size) return;
   kb.layoutHint = hit.size;
