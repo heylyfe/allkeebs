@@ -1,8 +1,14 @@
 // Overview tab: what we read from the keyboard, what can be changed, and its VIA definition.
 
-import { hex4, parseDefinitionText, pickDatabaseBoard, store } from "../../devices.js";
+import { hex4, pickDatabaseBoard, store } from "../../devices.js";
+import {
+  definitionUsbId,
+  parseDefinition,
+  removeDefinition,
+  saveDefinition,
+} from "../../definitions.js";
 import { loadKeymapLabels } from "../connect.js";
-import { $, esc, icons, toast } from "../dom.js";
+import { $, esc, icons, onDesktop, toast } from "../dom.js";
 import { render } from "../shell.js";
 
 const DEFINITION_SOURCES = {
@@ -68,6 +74,15 @@ function definitionStatus(kb) {
   if (kb.definitionError === "offline") {
     return "Couldn’t reach usevia.app. Lighting uses the standard VIA set until the definition loads";
   }
+  if (kb.definitionError === "badFile") {
+    return "The saved definition couldn’t be read. Load the .json again, or forget it";
+  }
+  if (kb.family === "identified") {
+    return (
+      "This keyboard isn’t in the database, on the keyboard or on usevia.app yet. " +
+      "If the maker publishes a VIA .json, loading it adds its exact layout here"
+    );
+  }
   return (
     "This board isn’t in the database, on the keyboard or on usevia.app yet. " +
     "If the maker publishes a VIA .json, loading it adds the exact layout and keymap"
@@ -98,19 +113,35 @@ function definitionPanel(kb) {
   const secondary =
     kb.definitionSource === "file"
       ? `<button class="btn ghost sm" id="defForget">Forget my file</button>`
-      : `<button class="btn ghost sm" id="defRetry">${icons.refresh}Check usevia.app again</button>`;
+      : kb.family === "identified"
+        ? ""
+        : `<button class="btn ghost sm" id="defRetry">${icons.refresh}Check usevia.app again</button>`;
+  const identifiedNote =
+    kb.family === "identified"
+      ? `<p class="sub">The layout from the definition is used here, in the key test and the layout view. Lighting and key remapping need a VIA-capable interface, which this keyboard doesn’t have.</p>`
+      : "";
   return `
     <div class="panel">
       <h2>${icons.file}VIA definition</h2>
       <p class="sub">${definitionStatus(kb)}</p>
+      ${identifiedNote}
       ${boardPicker(kb)}
       <div class="btns">
         <label class="btn sm">
           ${icons.upload}Load .json
           <input type="file" accept=".json,application/json" id="defFile" hidden>
         </label>
+        <button class="btn ghost sm" id="defPaste">${icons.file}Paste JSON</button>
         ${secondary}
       </div>
+      <div id="defPasteBox" hidden>
+        <textarea class="inp mono" id="defPasteText" rows="10" spellcheck="false" placeholder="Paste the definition .json here…"></textarea>
+        <div class="btns" style="margin-top:8px">
+          <button class="btn sm" id="defPasteUse">Use this definition</button>
+          <button class="btn ghost sm" id="defPasteCancel">Cancel</button>
+        </div>
+      </div>
+      <p class="sub" style="margin-top:10px">The file stays ${onDesktop() ? "on this computer" : "in this browser"}.</p>
     </div>`;
 }
 
@@ -151,7 +182,7 @@ export function tabOverview(el, kb) {
           <h2>Identity</h2>
           <div class="rows">${identity}</div>
         </div>
-        ${kb.family === "via" ? definitionPanel(kb) : ""}
+        ${kb.family === "via" || kb.family === "identified" ? definitionPanel(kb) : ""}
       </div>
     </div>`;
   const pick = $("#dbPick");
@@ -169,35 +200,50 @@ export function tabOverview(el, kb) {
       if (!file) return;
       file.text().then((t) => loadDefinition(kb, t));
     };
+  const paste = $("#defPaste");
+  if (paste)
+    paste.onclick = () => {
+      $("#defPasteBox").hidden = false;
+      $("#defPasteText").focus();
+    };
+  const pasteUse = $("#defPasteUse");
+  if (pasteUse)
+    pasteUse.onclick = () => {
+      loadDefinition(kb, $("#defPasteText").value);
+    };
+  const pasteCancel = $("#defPasteCancel");
+  if (pasteCancel)
+    pasteCancel.onclick = () => {
+      $("#defPasteBox").hidden = true;
+      $("#defPasteText").value = "";
+    };
   const r = $("#defRetry");
   if (r) r.onclick = () => reloadDefinition(kb);
   const fg = $("#defForget");
   if (fg)
     fg.onclick = () => {
-      try {
-        localStorage.removeItem("allkeebs.def.file." + (kb.vid * 65536 + kb.pid));
-      } catch {
-        /* ignore */
-      }
+      removeDefinition(kb.vid * 65536 + kb.pid);
       reloadDefinition(kb);
     };
 }
 
 async function loadDefinition(kb, text) {
   try {
-    const def = parseDefinitionText(text);
-    if (def.vendorId !== kb.vid || def.productId !== kb.pid) {
-      const theirs = `${hex4(def.vendorId)}:${hex4(def.productId)}`;
-      const ours = `${hex4(kb.vid)}:${hex4(kb.pid)}`;
-      toast(`That file is for ${theirs}, not this keyboard (${ours}). Loaded it anyway`, "bad");
+    const def = parseDefinition(text);
+    const theirs = definitionUsbId(def);
+    if (theirs && (theirs.vid !== kb.vid || theirs.pid !== kb.pid)) {
+      toast(
+        `That file is for ${hex4(theirs.vid)}:${hex4(theirs.pid)}, not this keyboard (${hex4(kb.vid)}:${hex4(kb.pid)}). Loaded it anyway`,
+        "bad",
+      );
     }
-    store.set("def.file." + (kb.vid * 65536 + kb.pid), text);
+    saveDefinition(text, { vid: kb.vid, pid: kb.pid });
     await kb.attachDefinition({ def, source: "file" });
     await loadKeymapLabels(kb);
     toast(`Loaded ${def.name}`);
     render();
   } catch (e) {
-    toast("That isn’t a VIA definition: " + e.message, "bad");
+    toast(e.message, "bad");
   }
 }
 
@@ -205,10 +251,11 @@ async function reloadDefinition(kb) {
   const { def, source, error } = await (async () => {
     try {
       const t = store.get("def.file." + (kb.vid * 65536 + kb.pid), null);
-      if (t) return { def: parseDefinitionText(t), source: "file" };
+      if (t) return { def: parseDefinition(t), source: "file" };
     } catch {
       /* ignore */
     }
+    if (kb.family === "identified") return { def: null, source: null, error: null };
     try {
       for (const v of ["v3", "v2"]) {
         const r = await fetch(
@@ -216,7 +263,7 @@ async function reloadDefinition(kb) {
         );
         if (r.ok) {
           try {
-            return { def: parseDefinitionText(await r.text()), source: "usevia" };
+            return { def: parseDefinition(await r.text()), source: "usevia" };
           } catch {
             /* html */
           }
