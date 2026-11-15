@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.3.0 — 2026-11-15
+
+Saved profiles, settings and definition files load as before; nothing to migrate.
+
+- **"Didn't answer VIA" on keyboards that never got asked.** A keyboard shows up several times
+  in the device list, one entry per USB interface, and only one of them is the VIA settings
+  interface. Picking the typing entry gave the "didn't answer VIA" note although VIA was never
+  tried. allkeebs now says that this is the typing interface and offers **Connect its settings
+  interface**, which opens a device list with just that entry (in Chrome and in the desktop app).
+  When the settings interface opens, the typing entry is dropped.
+- **Real VIA failures say why.** If the settings interface doesn't answer, allkeebs waits a moment
+  and tries once more with a fresh connection before giving up, and the note now includes the
+  driver's error.
+- **Several entries of one keyboard picked at once** connect as one keyboard: the entry a driver
+  can use is kept and the typing-only copies are dropped.
+- **The desktop app's device list shows one row per keyboard**, connecting its best interface
+  (VIA settings first). "Show every interface" brings back the full list.
+- **VIA definition input.** Paste a definition's JSON, not just load a file, on a keyboard's
+  Overview tab. On the Keyboards page, **Add a keyboard definition (.json)** saves a definition
+  for a keyboard allkeebs doesn't know before it's even plugged in, and lists saved definitions
+  with a Remove button. Keyboards without a driver use a saved definition for their exact layout.
+  Definitions stay in the browser (or on the computer, in the desktop app), as before.
+
 ## 1.2.1 — 2026-11-14
 
 - **Keyboards that share a USB id get the right name everywhere.** Several boards use the same

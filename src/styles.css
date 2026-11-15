@@ -775,6 +775,13 @@ select.inp {
 .inp:focus {
   border-color: rgb(var(--accent-rgb) / 0.6);
 }
+textarea.inp {
+  height: auto;
+  min-height: 160px;
+  padding: 10px 12px;
+  font: 12px/1.5 var(--mono);
+  resize: vertical;
+}
 select.inp option,
 select.inp optgroup {
   background: var(--card);

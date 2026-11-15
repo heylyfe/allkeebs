@@ -106,8 +106,13 @@ export function pickDevices(list) {
         done([...shade.querySelectorAll("input[data-i]:checked")].map((c) => list[+c.dataset.i]));
     });
     shade.addEventListener("change", (e) => {
-      if (e.target.matches("[data-toggle=all]"))
-        shade.querySelector(".mlist").innerHTML = rowsFor(e.target.checked);
+      if (!e.target.matches("[data-toggle=all]")) return;
+      // Keep what's ticked when switching views (rows are keyed by their index in list).
+      const ticked = new Set(
+        [...shade.querySelectorAll("input[data-i]:checked")].map((c) => c.dataset.i),
+      );
+      shade.querySelector(".mlist").innerHTML = rowsFor(e.target.checked);
+      for (const c of shade.querySelectorAll("input[data-i]")) c.checked = ticked.has(c.dataset.i);
     });
     document.addEventListener("keydown", onKey);
     document.body.appendChild(shade);

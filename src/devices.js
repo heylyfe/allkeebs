@@ -35,6 +35,13 @@ const store = {
       /* storage blocked */
     }
   },
+  remove(k) {
+    try {
+      localStorage.removeItem("allkeebs." + k);
+    } catch {
+      /* storage blocked */
+    }
+  },
 };
 
 export { store };
@@ -941,7 +948,8 @@ const pickedBoard = (device) =>
 
 /**
  * A keyboard no driver can configure. It's identified from the database or its name and
- * still gets a layout and the key test.
+ * still gets a layout and the key test. A VIA definition the user saved for this USB id
+ * is used for the exact layout; lighting and key remapping need a VIA-capable interface.
  */
 async function identifiedAdapter(device, why) {
   const e = await keyboardDb()
@@ -967,24 +975,71 @@ async function identifiedAdapter(device, why) {
     ["Name reported", device.productName || "–"],
   ];
   if (e) kb.identity.push(["Database entry", `${e.name}${e.maker ? ", " + e.maker : ""}`]);
-  if (e?.hasLayout) {
-    kb.exactLayout = exactLayout("db", e.name, e.keys);
-    for (const k of kb.exactLayout.keys) k.label = k.label || "";
-    assignCodes(kb.exactLayout);
+  const dbLayout = () => {
+    if (!e?.hasLayout) return null;
+    const layout = exactLayout("db", e.name, e.keys);
+    for (const k of layout.keys) k.label = k.label || "";
+    assignCodes(layout);
+    return layout;
+  };
+  // Only a definition the user saved is used, and only that file is read: an identified
+  // keyboard isn't expected to answer VIA, so nothing is sent to the keyboard.
+  kb.attachDefinition = async (found) => {
+    kb.definition = found.def;
+    kb.definitionSource = found.source;
+    kb.definitionError = found.error || null;
+    const def = found.def;
+    if (def) {
+      // No layout options were read (no VIA interface), so use the defaults.
+      const choices = via.viaLayoutChoices(def.labels, 0);
+      kb.choices = choices;
+      kb.exactLayout = exactLayout("via", def.name, via.viaActiveKeys(def, choices));
+      for (const k of kb.exactLayout.keys) k.label = k.label || "";
+      assignCodes(kb.exactLayout);
+      kb.name = def.name || kb.name;
+    } else {
+      kb.choices = null;
+      kb.exactLayout = dbLayout();
+    }
+  };
+  const own = store.get(
+    "def.file." + via.viaVendorProductId(device.vendorId, device.productId),
+    null,
+  );
+  if (own) {
+    try {
+      await kb.attachDefinition({ def: parseDefinitionText(own), source: "file" });
+    } catch {
+      await kb.attachDefinition({ def: null, source: null, error: "badFile" });
+    }
+  } else {
+    await kb.attachDefinition({ def: null, source: null, error: null });
   }
   kb.facts = [
-    ["Keys", e?.hasLayout ? e.keyCount : "–"],
-    ["Known from", !e ? "Its name" : e.via ? "VIA" : e.hasLayout ? "QMK" : "Keyboard database"],
+    ["Keys", kb.exactLayout ? kb.exactLayout.keys.length : "–"],
+    [
+      "Known from",
+      kb.definitionSource === "file"
+        ? "Your file"
+        : !e
+          ? "Its name"
+          : e.via
+            ? "VIA"
+            : e.hasLayout
+              ? "QMK"
+              : "Keyboard database",
+    ],
   ];
   // A VIA board picked through its typing interface: VIA was never tried on this handle.
   // The settings live on a separate interface of the same keyboard, so say so and let the
   // UI offer to connect it, instead of claiming VIA failed.
-  const typingOnly = !!e?.via && !isVia(device);
+  // A VIA definition the user saved says the same about a board the database doesn't know.
+  const typingOnly = (!!e?.via || kb.definitionSource === "file") && !isVia(device);
   if (typingOnly) kb.settingsInterface = { vendorId: device.vendorId, productId: device.productId };
   kb.notes.push(
     why ||
       (typingOnly
-        ? "This is the keyboard’s typing interface. Its settings — keymap, lighting and macros — live on a separate “settings (VIA)” interface of the same keyboard. Connect that interface to configure it."
+        ? "This is the keyboard’s typing interface. Its keymap, lighting and macros live on a separate “settings (VIA)” interface of the same keyboard. Connect that one to change them."
         : e?.via
           ? "This keyboard is in the VIA database but didn’t answer VIA. Switch it to wired mode and connect again."
           : "allkeebs recognises this keyboard, but its maker uses a private protocol for lighting and keys. The layout and key test work."),

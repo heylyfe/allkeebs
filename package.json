@@ -1,6 +1,6 @@
 {
   "name": "allkeebs",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "description": "Configure lighting, keymaps and macros on keyboards from almost any brand, in the browser over WebHID.",
   "scripts": {
     "build": "node build.mjs",

@@ -3,7 +3,15 @@ import { build } from "esbuild";
 import { execFileSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 mkdirSync("test/.out", { recursive: true });
-for (const t of ["hid", "fakevia", "fake2", "fake-sonix", "regressions", "settings-interface"]) {
+for (const t of [
+  "hid",
+  "fakevia",
+  "fake2",
+  "fake-sonix",
+  "regressions",
+  "settings-interface",
+  "definitions",
+]) {
   await build({
     entryPoints: [`test/${t}.mjs`],
     bundle: true,

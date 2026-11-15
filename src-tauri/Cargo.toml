@@ -1,6 +1,6 @@
 [package]
 name = "allkeebs"
-version = "1.2.1"
+version = "1.3.0"
 description = "Keyboard lighting, keymaps and macros, with hotkey macros that keep working from the tray"
 authors = ["heylyfe"]
 license = "AGPL-3.0-or-later"
