@@ -35,6 +35,13 @@ const store = {
       /* storage blocked */
     }
   },
+  remove(k) {
+    try {
+      localStorage.removeItem("allkeebs." + k);
+    } catch {
+      /* storage blocked */
+    }
+  },
 };
 
 export { store };
@@ -63,6 +70,22 @@ export async function pickKeyboards(any) {
   );
 }
 
+/**
+ * Asks the transport to show only this keyboard's separate "settings (VIA)" interface
+ * (usage page 0xFF60, usage 0x61). WebHID only lets requestDevice() run inside a user
+ * gesture; the desktop picker filters the same way. Returns the picked handles.
+ */
+export async function pickSettingsInterface(kb) {
+  return transport().request([
+    {
+      vendorId: kb.vid,
+      productId: kb.pid,
+      usagePage: VIA_FILTER.usagePage,
+      usage: VIA_FILTER.usage,
+    },
+  ]);
+}
+
 export async function grantedKeyboards() {
   if (hidSupport() !== "ok") return [];
   return transport().granted();
@@ -75,6 +98,13 @@ export const onHidEvent = (type, fn) => transport().on(type, fn);
 export function distinctHidHandles(list) {
   return [...new Set(list)];
 }
+
+/**
+ * Would a driver open this device, instead of the identified-keyboard fallback? Used to
+ * open the working interface of a keyboard before its typing-interface copy.
+ */
+export const opensWithDriver = (device) =>
+  !!sonixFamilyOf(device) || !!createSupportedClient(device);
 
 // VIA built-in menus (VIA app names these instead of spelling them out)
 const RGB_MATRIX_EFFECTS = [
@@ -918,7 +948,8 @@ const pickedBoard = (device) =>
 
 /**
  * A keyboard no driver can configure. It's identified from the database or its name and
- * still gets a layout and the key test.
+ * still gets a layout and the key test. A VIA definition the user saved for this USB id
+ * is used for the exact layout; lighting and key remapping need a VIA-capable interface.
  */
 async function identifiedAdapter(device, why) {
   const e = await keyboardDb()
@@ -944,20 +975,74 @@ async function identifiedAdapter(device, why) {
     ["Name reported", device.productName || "–"],
   ];
   if (e) kb.identity.push(["Database entry", `${e.name}${e.maker ? ", " + e.maker : ""}`]);
-  if (e?.hasLayout) {
-    kb.exactLayout = exactLayout("db", e.name, e.keys);
-    for (const k of kb.exactLayout.keys) k.label = k.label || "";
-    assignCodes(kb.exactLayout);
+  const dbLayout = () => {
+    if (!e?.hasLayout) return null;
+    const layout = exactLayout("db", e.name, e.keys);
+    for (const k of layout.keys) k.label = k.label || "";
+    assignCodes(layout);
+    return layout;
+  };
+  // Only a definition the user saved is used, and only that file is read: an identified
+  // keyboard isn't expected to answer VIA, so nothing is sent to the keyboard.
+  kb.attachDefinition = async (found) => {
+    kb.definition = found.def;
+    kb.definitionSource = found.source;
+    kb.definitionError = found.error || null;
+    const def = found.def;
+    if (def) {
+      // No layout options were read (no VIA interface), so use the defaults.
+      const choices = via.viaLayoutChoices(def.labels, 0);
+      kb.choices = choices;
+      kb.exactLayout = exactLayout("via", def.name, via.viaActiveKeys(def, choices));
+      for (const k of kb.exactLayout.keys) k.label = k.label || "";
+      assignCodes(kb.exactLayout);
+      kb.name = def.name || kb.name;
+    } else {
+      kb.choices = null;
+      kb.exactLayout = dbLayout();
+    }
+  };
+  const own = store.get(
+    "def.file." + via.viaVendorProductId(device.vendorId, device.productId),
+    null,
+  );
+  if (own) {
+    try {
+      await kb.attachDefinition({ def: parseDefinitionText(own), source: "file" });
+    } catch {
+      await kb.attachDefinition({ def: null, source: null, error: "badFile" });
+    }
+  } else {
+    await kb.attachDefinition({ def: null, source: null, error: null });
   }
   kb.facts = [
-    ["Keys", e?.hasLayout ? e.keyCount : "–"],
-    ["Known from", !e ? "Its name" : e.via ? "VIA" : e.hasLayout ? "QMK" : "Keyboard database"],
+    ["Keys", kb.exactLayout ? kb.exactLayout.keys.length : "–"],
+    [
+      "Known from",
+      kb.definitionSource === "file"
+        ? "Your file"
+        : !e
+          ? "Its name"
+          : e.via
+            ? "VIA"
+            : e.hasLayout
+              ? "QMK"
+              : "Keyboard database",
+    ],
   ];
+  // A VIA board picked through its typing interface: VIA was never tried on this handle.
+  // The settings live on a separate interface of the same keyboard, so say so and let the
+  // UI offer to connect it, instead of claiming VIA failed.
+  // A VIA definition the user saved says the same about a board the database doesn't know.
+  const typingOnly = (!!e?.via || kb.definitionSource === "file") && !isVia(device);
+  if (typingOnly) kb.settingsInterface = { vendorId: device.vendorId, productId: device.productId };
   kb.notes.push(
     why ||
-      (e?.via
-        ? "This keyboard is in the VIA database but didn’t answer VIA. Switch it to wired mode and connect again."
-        : "allkeebs recognises this keyboard, but its maker uses a private protocol for lighting and keys. The layout and key test work."),
+      (typingOnly
+        ? "This is the keyboard’s typing interface. Its keymap, lighting and macros live on a separate “settings (VIA)” interface of the same keyboard. Connect that one to change them."
+        : e?.via
+          ? "This keyboard is in the VIA database but didn’t answer VIA. Switch it to wired mode and connect again."
+          : "allkeebs recognises this keyboard, but its maker uses a private protocol for lighting and keys. The layout and key test work."),
   );
   return kb;
 }
@@ -1006,25 +1091,52 @@ async function addSizeHint(kb, device) {
 async function openWithDriver(device, log) {
   const family = sonixFamilyOf(device);
   if (family) return sonixAdapter(device, family, log);
-  const client = createSupportedClient(device);
+  let client = createSupportedClient(device);
   if (!client) {
     log(`No driver for ${device.productName || "device"}, identifying it`);
     return identifiedAdapter(device);
   }
   let vialText = null;
-  if (deviceBrand(client) === "VIA") {
+  const brand = deviceBrand(client);
+  if (brand === "VIA") {
     vialText = await readVialDefinition(device).catch(() => null);
     if (vialText) log("Read the Vial definition stored on the keyboard");
   }
-  let status;
+  let status,
+    failure = null;
   try {
     await client.open();
     status = await client.readStatus();
   } catch (e) {
     await client.close().catch(() => {});
-    log(`${deviceBrand(client)} driver failed: ${e.message}`);
-    if (deviceBrand(client) === "VIA") return identifiedAdapter(device);
-    throw e;
+    log(`${brand} driver failed: ${e.message}`);
+    failure = e;
+    if (brand === "VIA") {
+      // A timeout faults the client for good, and a late reply from the Vial probe can
+      // still be on its way, so let it drain, then try once more with a fresh client.
+      await new Promise((r) => setTimeout(r, 300));
+      const fresh = createSupportedClient(device);
+      if (fresh) {
+        try {
+          await fresh.open();
+          status = await fresh.readStatus();
+          client = fresh;
+          failure = null;
+        } catch (e2) {
+          await fresh.close().catch(() => {});
+          log(`VIA driver failed again: ${e2.message}`);
+          failure = e2;
+        }
+      }
+    }
+  }
+  if (failure) {
+    if (brand === "VIA")
+      return identifiedAdapter(
+        device,
+        `This keyboard is in the VIA database but didn’t answer VIA: ${failure.message} Switch it to wired mode, close VIA or the vendor app, and connect again.`,
+      );
+    throw failure;
   }
   const usbId = `${hex4(device.vendorId)}:${hex4(device.productId)}`;
   log(`${deviceBrand(client)} driver opened ${device.productName || "device"} (${usbId})`);

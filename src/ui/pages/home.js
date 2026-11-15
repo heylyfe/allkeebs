@@ -1,10 +1,11 @@
 // Home page: connected keyboards and the "add a keyboard" card.
 
-import { hidSupport } from "../../devices.js";
+import { hidSupport, hex4 } from "../../devices.js";
+import { listDefinitions, removeDefinition, saveDefinition } from "../../definitions.js";
 import { sizeClass } from "../../layouts.js";
 import { KeyboardView } from "../../render.js";
 import { connect, demo, openDevice, removeDevice } from "../connect.js";
-import { $, $$, esc, icons, onDesktop } from "../dom.js";
+import { $, $$, esc, icons, onDesktop, toast } from "../dom.js";
 import { layoutFor } from "../layout-choice.js";
 import { views } from "../loop.js";
 import { currentProfile, state } from "../state.js";
@@ -41,7 +42,78 @@ function addKeyboardCard() {
         <button class="btn ${first ? "primary" : ""} lg" id="addBtn">${icons.plug}Connect keyboard</button>
         ${hasDemo ? "" : `<button class="btn ghost lg" id="demoBtn">Try the demo board</button>`}
       </div>
+      <div style="margin-top:10px">
+        <button class="btn ghost sm" id="addDefToggle">${icons.file}Add a keyboard definition (.json)</button>
+      </div>
+      <div id="addDefBox" hidden>
+        <p class="sub" style="margin:12px 0">
+          For a keyboard allkeebs doesn’t know yet. Pick the .json the maker publishes for VIA, or paste
+          its text. allkeebs uses it automatically when that keyboard connects.
+        </p>
+        <div class="btns">
+          <label class="btn sm">
+            ${icons.upload}Load .json
+            <input type="file" accept=".json,application/json" id="addDefFile" hidden>
+          </label>
+          <button class="btn ghost sm" id="addDefPaste">${icons.file}Paste JSON</button>
+        </div>
+        <div id="addDefPasteBox" hidden style="margin-top:10px">
+          <textarea class="inp mono" id="addDefPasteText" rows="10" spellcheck="false" placeholder="Paste the definition .json here…"></textarea>
+          <div class="btns" style="margin-top:8px">
+            <button class="btn sm" id="addDefUse">Use this definition</button>
+            <button class="btn ghost sm" id="addDefCancel">Cancel</button>
+          </div>
+        </div>
+        <p class="sub" style="margin-top:10px">The file stays ${onDesktop() ? "on this computer" : "in this browser"}.</p>
+        <div id="defList"></div>
+      </div>
     </div>`;
+}
+
+// The saved definitions, name + USB id, with a way to remove each one.
+function savedDefinitionsHtml() {
+  const defs = listDefinitions();
+  if (!defs.length) return "";
+  return `
+    <p class="sub" style="margin:12px 0 0"><b>Saved definitions</b></p>
+    <div class="rows">
+      ${defs
+        .map(
+          (d) => `
+        <div class="row">
+          <span>${esc(d.name)} <span class="mono">${esc(hex4(d.vid))}:${esc(hex4(d.pid))}</span></span>
+          <button class="btn ghost sm" data-rmdef="${d.vpid}">Remove</button>
+        </div>`,
+        )
+        .join("")}
+    </div>`;
+}
+
+function renderSavedDefinitions() {
+  const box = $("#defList");
+  if (!box) return;
+  box.innerHTML = savedDefinitionsHtml();
+  for (const b of $$("[data-rmdef]", box))
+    b.onclick = () => {
+      const vpid = Number(b.dataset.rmdef);
+      removeDefinition(vpid);
+      toast("Removed the saved definition");
+      renderSavedDefinitions();
+    };
+}
+
+async function saveHomeDefinition(text) {
+  try {
+    const entry = saveDefinition(text);
+    toast(
+      `Saved ${entry.name} for ${hex4(entry.vid)}:${hex4(entry.pid)}. It loads when that keyboard connects`,
+    );
+    $("#addDefPasteBox").hidden = true;
+    $("#addDefPasteText").value = "";
+    renderSavedDefinitions();
+  } catch (e) {
+    toast(e.message, "bad");
+  }
 }
 
 function keyboardCard(kb) {
@@ -82,6 +154,34 @@ export function pageHome(page) {
   $("#addBtn").onclick = () => connect(false);
   const db = $("#demoBtn");
   if (db) db.onclick = demo;
+  const dt = $("#addDefToggle");
+  if (dt)
+    dt.onclick = () => {
+      $("#addDefBox").hidden = !$("#addDefBox").hidden;
+      if (!$("#addDefBox").hidden) renderSavedDefinitions();
+    };
+  const df = $("#addDefFile");
+  if (df)
+    df.onchange = () => {
+      const file = df.files[0];
+      if (!file) return;
+      file.text().then(saveHomeDefinition);
+    };
+  const dp = $("#addDefPaste");
+  if (dp)
+    dp.onclick = () => {
+      $("#addDefPasteBox").hidden = false;
+      $("#addDefPasteText").focus();
+    };
+  const du = $("#addDefUse");
+  if (du) du.onclick = () => saveHomeDefinition($("#addDefPasteText").value);
+  const dc = $("#addDefCancel");
+  if (dc)
+    dc.onclick = () => {
+      $("#addDefPasteBox").hidden = true;
+      $("#addDefPasteText").value = "";
+    };
+  renderSavedDefinitions();
   $$("[data-open]").forEach(
     (b) => (b.onclick = () => openDevice(state.devices.find((d) => d.id === b.dataset.open))),
   );

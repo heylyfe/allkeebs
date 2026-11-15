@@ -33,7 +33,9 @@ You can try everything with the **demo board** before plugging anything in.
 
 Keyboards without a tick are still recognised and drawn with the right layout, but allkeebs can't change those settings yet. The **Supported keyboards** page inside allkeebs lets you search the full list.
 
-**My VIA keyboard shows "guessed" lighting or no keymap.** That board isn't in the built-in list yet. If its maker publishes a VIA `.json` file, open the keyboard's **Overview** tab in allkeebs and click **Load .json**. allkeebs remembers it after that.
+**My VIA keyboard shows "guessed" lighting or no keymap.** That board isn't in the built-in list yet. If its maker publishes a VIA `.json` file, open the keyboard's **Overview** tab in allkeebs and click **Load .json** or **Paste JSON**. You can also add it before plugging the keyboard in: **Add a keyboard definition (.json)** on the Keyboards page. allkeebs remembers it after that, and the file never leaves your browser.
+
+**It says it's the typing interface, or VIA didn't answer.** A keyboard shows up several times in the device list, and only its settings interface can change anything. Click **Connect its settings interface** on the keyboard's Overview tab and pick the one entry it offers. If VIA really doesn't answer, allkeebs now shows the error: use a cable (not the 2.4 GHz dongle or Bluetooth) and close VIA or the maker's app first.
 
 ## Desktop app (Windows)
 
