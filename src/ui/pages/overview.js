@@ -1,7 +1,7 @@
 // Overview tab: what we read from the keyboard, what can be changed, and its VIA definition.
 
 import { hex4, parseDefinitionText, pickDatabaseBoard, store } from "../../devices.js";
-import { loadKeymapLabels } from "../connect.js";
+import { connectSettingsInterface, loadKeymapLabels } from "../connect.js";
 import { $, esc, icons, toast } from "../dom.js";
 import { render } from "../shell.js";
 
@@ -114,6 +114,19 @@ function definitionPanel(kb) {
     </div>`;
 }
 
+// Shown when the picked entry is only the keyboard's typing interface: its settings live
+// on a separate interface of the same keyboard, one connect away.
+function settingsInterfacePanel(kb) {
+  return `
+  <div class="panel">
+    <h2>${icons.plug}Its settings live on another interface</h2>
+    <p class="sub">This is the keyboard’s typing interface. The VIA settings — keymap, lighting and macros — live on a separate “settings (VIA)” interface of the same keyboard.</p>
+    <div class="btns">
+      <button class="btn primary" id="settingsInterface">${icons.plug}Connect its settings interface</button>
+    </div>
+  </div>`;
+}
+
 export function tabOverview(el, kb) {
   const facts = kb.facts
     .map(
@@ -134,6 +147,7 @@ export function tabOverview(el, kb) {
   el.innerHTML = `
     <div class="grid2">
       <div class="col">
+        ${kb.settingsInterface ? settingsInterfacePanel(kb) : ""}
         <div class="panel">
           <h2>Current setup</h2>
           <p class="sub">Read from the keyboard when it connected</p>
@@ -154,6 +168,16 @@ export function tabOverview(el, kb) {
         ${kb.family === "via" ? definitionPanel(kb) : ""}
       </div>
     </div>`;
+  const s = $("#settingsInterface");
+  if (s)
+    s.onclick = async () => {
+      s.disabled = true;
+      try {
+        await connectSettingsInterface(kb);
+      } finally {
+        s.disabled = false;
+      }
+    };
   const pick = $("#dbPick");
   if (pick)
     pick.onchange = async () => {
